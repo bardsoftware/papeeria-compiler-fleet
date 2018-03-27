@@ -15,38 +15,36 @@ class SubscriberArgs(parser: ArgParser) {
             help = "subscription topic name")
 }
 
-object SubscriberExample {
 
-    private val PROJECT_ID = ServiceOptions.getDefaultProjectId()
+private val PROJECT_ID = ServiceOptions.getDefaultProjectId()
 
-    private val messages = LinkedBlockingDeque<PubsubMessage>()
+private val messages = LinkedBlockingDeque<PubsubMessage>()
 
-    internal class MessageReceiverExample : MessageReceiver {
+internal class MessageReceiverExample : MessageReceiver {
 
-        override fun receiveMessage(message: PubsubMessage, consumer: AckReplyConsumer) {
-            messages.offer(message)
-            consumer.ack()
-        }
+    override fun receiveMessage(message: PubsubMessage, consumer: AckReplyConsumer) {
+        messages.offer(message)
+        consumer.ack()
     }
+}
 
-    fun main(args: Array<String>) {
-        val parsedArgs = ArgParser(args).parseInto(::SubscriberArgs)
-        val subscriptionId = parsedArgs.subscriberName
-        val subscriptionName = SubscriptionName.of(PROJECT_ID, subscriptionId)
+fun main(args: Array<String>) {
+    val parsedArgs = ArgParser(args).parseInto(::SubscriberArgs)
+    val subscriptionId = parsedArgs.subscriberName
+    val subscriptionName = SubscriptionName.of(PROJECT_ID, subscriptionId)
 
-        var subscriber: Subscriber? = null
-        try {
-            subscriber = Subscriber.newBuilder(subscriptionName, MessageReceiverExample()).build()
-            subscriber.startAsync().awaitRunning()
-            while (true) {
-                val message = messages.take()
-                println("Message Id: " + message.messageId)
-                println("Data: " + message.data.toStringUtf8())
-            }
-        } finally {
-            if (subscriber != null) {
-                subscriber.stopAsync()
-            }
+    var subscriber: Subscriber? = null
+    try {
+        subscriber = Subscriber.newBuilder(subscriptionName, MessageReceiverExample()).build()
+        subscriber.startAsync().awaitRunning()
+        while (true) {
+            val message = messages.take()
+            println("Message Id: " + message.messageId)
+            println("Data: " + message.data.toStringUtf8())
+        }
+    } finally {
+        if (subscriber != null) {
+            subscriber.stopAsync()
         }
     }
 }
