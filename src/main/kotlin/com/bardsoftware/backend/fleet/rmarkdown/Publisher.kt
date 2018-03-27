@@ -30,22 +30,16 @@ class Publisher(private val topicName: String) {
             ApiFutures.addCallback(future, object : ApiFutureCallback<String> {
 
                 override fun onFailure(throwable: Throwable) {
-                    if (throwable is ApiException) {
-                        println(throwable)
-                    }
-
-                    println("Error publishing message : " + message)
+                    println(throwable)
+                    println("Error publishing message : $message")
                 }
 
                 override fun onSuccess(messageId: String) {
-                    println("successful puplushed $messageId")
+                    println("successful published $messageId")
                 }
             })
         } finally {
-            if (publisher != null) {
-                // When finished with the publisher, shutdown to free up resources.
-                publisher.shutdown()
-            }
+            publisher?.shutdown()
         }
     }
 }

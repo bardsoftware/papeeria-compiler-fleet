@@ -42,8 +42,6 @@ fun main(args: Array<String>) {
             println("Data: " + message.data.toStringUtf8())
         }
     } finally {
-        if (subscriber != null) {
-            subscriber.stopAsync()
-        }
+        subscriber?.stopAsync()
     }
 }
