@@ -2,7 +2,8 @@ group 'compiler-fleet'
 version '1.0-SNAPSHOT'
 
 buildscript {
-    ext.kotlin_version = '1.2.31'
+    ext.kotlin_version = '1.2.+'
+    ext.argparser_version = "2.+"
 
     repositories {
         mavenCentral()
@@ -25,7 +26,7 @@ repositories {
 
 dependencies {
     compile "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
-    compile "com.xenomachina:kotlin-argparser:2.0.4"
+    compile "com.xenomachina:kotlin-argparser:$argparser_version"
     compile 'com.google.cloud:google-cloud-pubsub:0.32.0-beta'
 }
 
