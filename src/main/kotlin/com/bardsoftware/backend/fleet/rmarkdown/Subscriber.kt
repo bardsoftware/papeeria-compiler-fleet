@@ -15,7 +15,6 @@ class SubscriberArgs(parser: ArgParser) {
             help = "subscription topic name")
 }
 
-
 private val PROJECT_ID = ServiceOptions.getDefaultProjectId()
 
 private val messages = LinkedBlockingDeque<PubsubMessage>()
@@ -30,6 +29,8 @@ internal class MessageReceiverExample : MessageReceiver {
 
 fun main(args: Array<String>) {
     val parsedArgs = ArgParser(args).parseInto(::SubscriberArgs)
+
+    println(parsedArgs.subscriberName)
     val subscriptionId = parsedArgs.subscriberName
     val subscriptionName = SubscriptionName.of(PROJECT_ID, subscriptionId)
 
