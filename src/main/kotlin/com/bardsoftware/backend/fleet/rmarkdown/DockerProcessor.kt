@@ -37,7 +37,6 @@ class DockerProcessor {
         docker.startContainer(containerId)
     }
 
-
     fun getMd5Sum(message: String): String {
         val quotedMessage = "\"$message\""
         val command = arrayOf("sh", "-c", "md5sum", "<<<", quotedMessage)
@@ -47,7 +46,10 @@ class DockerProcessor {
                 DockerClient.ExecCreateParam.attachStderr())
 
         val output = docker.execStart(execCreation.id())
-        return output.readFully()
+        val hash = output.readFully()
+
+        val spaceIndex = hash.indexOfFirst { it.isWhitespace() }
+        return hash.substring(0, spaceIndex)
     }
 
     fun closeDockerResources() {
