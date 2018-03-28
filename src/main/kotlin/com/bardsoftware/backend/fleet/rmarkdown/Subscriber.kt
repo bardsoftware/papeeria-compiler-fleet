@@ -48,8 +48,6 @@ fun main(args: Array<String>) {
     val parsedArgs = ArgParser(args).parseInto(::SubscriberArgs)
     val subscriptionId = parsedArgs.subscriberName
     val subscriptionName = SubscriptionName.of(PROJECT_ID, subscriptionId)
-
-    Publisher("rmarkdown-tasks").publish("test message")
     
     var subscriber: Subscriber? = null
     try {
