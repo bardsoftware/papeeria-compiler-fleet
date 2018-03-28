@@ -1,4 +1,4 @@
-
+[![Build Status](https://travis-ci.org/bardsoftware/papeeria-compiler-fleet.svg?branch=master)](https://travis-ci.org/bardsoftware/papeeria-compiler-fleet)
 
 ## Summary
 
