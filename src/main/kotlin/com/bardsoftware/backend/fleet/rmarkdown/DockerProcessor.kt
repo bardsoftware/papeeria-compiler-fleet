@@ -19,40 +19,29 @@ import com.spotify.docker.client.DefaultDockerClient
 import com.spotify.docker.client.DockerClient
 import com.spotify.docker.client.messages.ContainerConfig
 
-
 class DockerProcessor {
     private val docker: DockerClient = DefaultDockerClient.fromEnv().build()
-    private val containerId: String?
-
-    init {
-        docker.pull("busybox")
-
-        val containerConfig = ContainerConfig.builder()
-                .image("busybox")
-                .cmd("sh", "-c", "while :; do sleep 1; done")
-                .build()
-
-        val creation = docker.createContainer(containerConfig)
-        containerId = creation.id()
-        docker.startContainer(containerId)
-    }
 
     fun getMd5Sum(message: String): String {
         val quotedMessage = "\"$message\""
-        val command = arrayOf("sh", "-c", "md5sum", "<<<", quotedMessage)
 
-        val execCreation = docker.execCreate(containerId, command,
-                DockerClient.ExecCreateParam.attachStdout(),
-                DockerClient.ExecCreateParam.attachStderr())
+        val containerConfig = ContainerConfig.builder()
+                .image("busybox")
+                .cmd("sh", "-c", "md5sum", "<<<", quotedMessage)
+                .build()
 
-        val output = docker.execStart(execCreation.id())
-        val hash = output.readFully()
+        val creation = docker.createContainer(containerConfig)
+        val containerId = creation.id()
+        docker.startContainer(containerId)
+
+        val hash = docker.logs(containerId, DockerClient.LogsParam.stdout()).readFully()
+        releaseResources(containerId)
 
         val spaceIndex = hash.indexOfFirst { it.isWhitespace() }
         return hash.substring(0, spaceIndex)
     }
 
-    fun closeDockerResources() {
+    private fun releaseResources(containerId: String?) {
         docker.killContainer(containerId)
         docker.removeContainer(containerId)
         docker.close()

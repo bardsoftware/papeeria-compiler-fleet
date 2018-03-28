@@ -24,7 +24,6 @@ import com.google.pubsub.v1.SubscriptionName
 import com.xenomachina.argparser.ArgParser
 import java.util.concurrent.LinkedBlockingDeque
 
-
 class SubscriberArgs(parser: ArgParser) {
     val subscriberName by parser.storing(
             "--sub",
@@ -63,6 +62,5 @@ fun main(args: Array<String>) {
         }
     } finally {
         subscriber?.stopAsync()
-        dockerProcessor.closeDockerResources()
     }
 }
