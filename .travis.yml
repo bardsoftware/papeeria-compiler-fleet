@@ -1,0 +1,11 @@
+language: java
+sudo: required
+
+services:
+  - docker
+
+before_install:
+  - docker pull busybox
+
+notifications:
+  slack: papeeria-team:XVDawu0e0sh9hEDD4WCUBqk3
