@@ -21,8 +21,8 @@ import com.google.cloud.pubsub.v1.MessageReceiver
 import com.google.cloud.pubsub.v1.Subscriber
 import com.google.pubsub.v1.PubsubMessage
 import com.google.pubsub.v1.SubscriptionName
-import java.util.concurrent.LinkedBlockingDeque
 import com.xenomachina.argparser.ArgParser
+import java.util.concurrent.LinkedBlockingDeque
 
 class SubscriberArgs(parser: ArgParser) {
     val subscriberName by parser.storing(
@@ -43,6 +43,7 @@ internal class MessageReceiverExample : MessageReceiver {
 }
 
 fun main(args: Array<String>) {
+    val dockerProcessor = DockerProcessor()
     val parsedArgs = ArgParser(args).parseInto(::SubscriberArgs)
     val subscriptionId = parsedArgs.subscriberName
     val subscriptionName = SubscriptionName.of(PROJECT_ID, subscriptionId)
@@ -53,8 +54,11 @@ fun main(args: Array<String>) {
         subscriber.startAsync().awaitRunning()
         while (true) {
             val message = messages.take()
+            val messageContent = message.data.toStringUtf8()
+
             println("Message Id: " + message.messageId)
-            println("Data: " + message.data.toStringUtf8())
+            println("Data: $messageContent")
+            println("md5 sum: " + dockerProcessor.getMd5Sum(messageContent))
         }
     } finally {
         subscriber?.stopAsync()

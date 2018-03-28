@@ -24,7 +24,8 @@ repositories {
 dependencies {
     compile "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
     compile "com.xenomachina:kotlin-argparser:2.+"
-    compile 'com.google.cloud:google-cloud-pubsub:0.32.0-beta'
+    compile "com.spotify:docker-client:8.11.+"
+    compile "com.google.cloud:google-cloud-pubsub:0.32.0-beta"
 }
 
 compileKotlin {
