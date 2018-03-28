@@ -22,22 +22,29 @@ import com.spotify.docker.client.messages.ContainerConfig
 class DockerProcessor {
     private val docker: DockerClient = DefaultDockerClient.fromEnv().build()
 
-    fun getMd5Sum(message: String): String {
-        val quotedMessage = "\"$message\""
+    fun getMd5Sum(message: String): String? {
+        var containerId: String? = null
 
-        val containerConfig = ContainerConfig.builder()
-                .image("busybox")
-                .cmd("sh", "-c", "md5sum", "<<<", quotedMessage)
-                .build()
+        try {
+            val quotedMessage = "\"$message\""
 
-        val creation = docker.createContainer(containerConfig)
-        val containerId = creation.id()
-        docker.startContainer(containerId)
+            val containerConfig = ContainerConfig.builder()
+                    .image("busybox")
+                    .cmd("sh", "-c", "md5sum", "<<<", quotedMessage)
+                    .build()
 
-        val hash = docker.logs(containerId, DockerClient.LogsParam.stdout()).readFully()
-        docker.stopContainer(containerId, 0)
-        docker.removeContainer(containerId)
+            val creation = docker.createContainer(containerConfig)
+            containerId = creation.id()
+            docker.startContainer(containerId)
 
-        return hash
+            return docker.logs(containerId, DockerClient.LogsParam.stdout()).readFully()
+        } catch (e: Exception) {
+            e.printStackTrace()
+        } finally {
+            docker.stopContainer(containerId, 0)
+            docker.removeContainer(containerId)
+        }
+
+        return null
     }
 }
