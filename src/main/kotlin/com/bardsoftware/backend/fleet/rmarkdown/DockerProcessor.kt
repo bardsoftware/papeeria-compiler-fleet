@@ -21,6 +21,7 @@ import com.spotify.docker.client.messages.ContainerConfig
 
 class DockerProcessor {
     private val docker: DockerClient = DefaultDockerClient.fromEnv().build()
+    private var containerId: String? = null
 
     fun getMd5Sum(message: String): String {
         val quotedMessage = "\"$message\""
@@ -31,19 +32,12 @@ class DockerProcessor {
                 .build()
 
         val creation = docker.createContainer(containerConfig)
-        val containerId = creation.id()
+        containerId = creation.id()
         docker.startContainer(containerId)
 
         val hash = docker.logs(containerId, DockerClient.LogsParam.stdout()).readFully()
-        releaseResources(containerId)
-
         val spaceIndex = hash.indexOfFirst { it.isWhitespace() }
-        return hash.substring(0, spaceIndex)
-    }
 
-    private fun releaseResources(containerId: String?) {
-        docker.killContainer(containerId)
-        docker.removeContainer(containerId)
-        docker.close()
+        return hash.substring(0, spaceIndex)
     }
 }
