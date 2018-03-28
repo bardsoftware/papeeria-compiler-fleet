@@ -41,8 +41,10 @@ class DockerProcessor {
         } catch (e: Exception) {
             e.printStackTrace()
         } finally {
-            docker.stopContainer(containerId, 0)
-            docker.removeContainer(containerId)
+            containerId?.let {
+                docker.stopContainer(it, 0)
+                docker.removeContainer(it)
+            }
         }
 
         return null
