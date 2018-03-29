@@ -16,8 +16,8 @@
 syntax = "proto3";
 
 option java_package = "com.bardsoftware.backend.fleet.rmarkdown";
-option java_outer_classname = "BufferProtocol";
+option java_outer_classname = "CompilerFleet";
 
-message Buffer {
+message CompilerFleetRequest {
     string message = 1;
 }
