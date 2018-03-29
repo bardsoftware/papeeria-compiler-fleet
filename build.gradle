@@ -9,12 +9,14 @@ buildscript {
     }
     dependencies {
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+        classpath 'com.google.protobuf:protobuf-gradle-plugin:0.8.+'
     }
 }
 
 apply plugin: 'java'
 apply plugin: 'kotlin'
 apply plugin: 'application'
+apply plugin: 'com.google.protobuf'
 
 repositories {
     mavenCentral()
@@ -26,6 +28,25 @@ dependencies {
     compile "com.xenomachina:kotlin-argparser:2.+"
     compile "com.spotify:docker-client:8.11.+"
     compile "com.google.cloud:google-cloud-pubsub:0.32.0-beta"
+    compile 'com.google.protobuf:protobuf-java:3.5.+'
+    compile 'io.grpc:grpc-protobuf:1.+'
+}
+
+sourceSets {
+    main {
+        proto {
+            srcDir 'src/main/proto'
+        }
+        java {
+            srcDirs 'src/main/java', 'generated/source/proto/main/java'
+        }
+    }
+}
+
+protobuf {
+    protoc {
+        artifact = 'com.google.protobuf:protoc:3.5.1'
+    }
 }
 
 compileKotlin {
