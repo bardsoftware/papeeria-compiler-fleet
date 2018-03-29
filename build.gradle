@@ -29,7 +29,8 @@ dependencies {
     compile "com.spotify:docker-client:8.11.+"
     compile "com.google.cloud:google-cloud-pubsub:0.32.0-beta"
     compile 'com.google.protobuf:protobuf-java:3.5.+'
-    compile 'io.grpc:grpc-protobuf:1.+'
+    //uncomment when we start doing grpc requests
+    //compile 'io.grpc:grpc-protobuf:1.+'
 }
 
 sourceSets {
