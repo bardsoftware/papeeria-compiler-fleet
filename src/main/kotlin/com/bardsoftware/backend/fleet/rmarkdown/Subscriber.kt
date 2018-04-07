@@ -42,25 +42,46 @@ internal class MessageReceiverExample : MessageReceiver {
     }
 }
 
+class SubscribeManager(subscriptionId: String) {
+    private val dockerProcessor = DockerProcessor()
+    private val subscriptionName = SubscriptionName.of(PROJECT_ID, subscriptionId)
+    private var subscriber: Subscriber? = null
+    private var finished = false
+
+    fun subscribe(callback: (message: String, md5sum: String?) -> Unit) {
+        try {
+            subscriber = Subscriber.newBuilder(subscriptionName, MessageReceiverExample()).build()
+            subscriber?.startAsync()?.awaitRunning()
+
+            while (true) {
+                if (finished) {
+                    break
+                }
+
+                val message = messages.take()
+                val messageContent = message.data.toStringUtf8()
+                val md5sum = dockerProcessor.getMd5Sum(messageContent)
+
+                callback(messageContent, md5sum)
+            }
+        } finally {
+            subscriber?.stopAsync()
+        }
+    }
+
+    fun shutdown() {
+        finished = true
+    }
+}
+
 fun main(args: Array<String>) {
-    val dockerProcessor = DockerProcessor()
     val parsedArgs = ArgParser(args).parseInto(::SubscriberArgs)
     val subscriptionId = parsedArgs.subscriberName
-    val subscriptionName = SubscriptionName.of(PROJECT_ID, subscriptionId)
 
-    var subscriber: Subscriber? = null
-    try {
-        subscriber = Subscriber.newBuilder(subscriptionName, MessageReceiverExample()).build()
-        subscriber.startAsync().awaitRunning()
-        while (true) {
-            val message = messages.take()
-            val messageContent = message.data.toStringUtf8()
-
-            println("Message Id: " + message.messageId)
-            println("Data: $messageContent")
-            println("md5 sum: " + dockerProcessor.getMd5Sum(messageContent))
-        }
-    } finally {
-        subscriber?.stopAsync()
+    val printerCallback = { message: String, md5sum: String? ->
+        println("Data: $message")
+        println("md5 sum: $md5sum")
     }
+
+    SubscribeManager(subscriptionId).subscribe(printerCallback)
 }
