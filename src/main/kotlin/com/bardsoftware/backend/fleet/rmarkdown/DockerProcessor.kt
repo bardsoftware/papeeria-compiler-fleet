@@ -17,6 +17,8 @@ package com.bardsoftware.backend.fleet.rmarkdown
 
 import com.spotify.docker.client.DefaultDockerClient
 import com.spotify.docker.client.DockerClient
+import com.spotify.docker.client.DockerClient.LogsParam.stderr
+import com.spotify.docker.client.DockerClient.LogsParam.stdout
 import com.spotify.docker.client.messages.ContainerConfig
 
 class DockerProcessor {
@@ -30,14 +32,19 @@ class DockerProcessor {
 
             val containerConfig = ContainerConfig.builder()
                     .image("busybox")
-                    .cmd("sh", "-c", "md5sum", "<<<", quotedMessage)
+                    .cmd("sh", "-c", "echo $quotedMessage | md5sum")
                     .build()
 
             val creation = docker.createContainer(containerConfig)
             containerId = creation.id()
             docker.startContainer(containerId)
 
-            return docker.logs(containerId, DockerClient.LogsParam.stdout()).readFully()
+            var logs = ""
+            docker.logs(containerId, stdout(), stderr()).use({
+                stream -> logs = stream.readFully()
+            })
+
+            return logs
         } catch (e: Exception) {
             e.printStackTrace()
         } finally {
