@@ -23,6 +23,14 @@ import com.google.protobuf.ByteString
 import com.google.pubsub.v1.PubsubMessage
 import com.google.pubsub.v1.TopicName
 
+fun createMessage(message: String): PubsubMessage {
+    val data = ByteString.copyFromUtf8(message)
+
+    return PubsubMessage.newBuilder()
+            .setData(data)
+            .build()
+}
+
 class Publisher(private val topicName: String) {
     private val PROJECT_ID = ServiceOptions.getDefaultProjectId()
 
@@ -50,17 +58,6 @@ class Publisher(private val topicName: String) {
             })
         } finally {
             publisher?.shutdown()
-        }
-    }
-
-    companion object {
-        fun createMessage(message: String): PubsubMessage? {
-            val data = ByteString.copyFromUtf8(message)
-            val pubsubMessage = PubsubMessage.newBuilder()
-                    .setData(data)
-                    .build()
-
-            return pubsubMessage
         }
     }
 }

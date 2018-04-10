@@ -24,7 +24,7 @@ import com.spotify.docker.client.messages.ContainerConfig
 class DockerProcessor {
     private val docker: DockerClient = DefaultDockerClient.fromEnv().build()
 
-    fun getMd5Sum(message: String): String? {
+    fun getMd5Sum(message: String): String {
         var containerId: String? = null
 
         try {
@@ -39,12 +39,10 @@ class DockerProcessor {
             containerId = creation.id()
             docker.startContainer(containerId)
 
-            var logs = ""
             docker.logs(containerId, stdout(), stderr()).use({
-                stream -> logs = stream.readFully()
+                stream ->
+                    return stream.readFully() ?: return ""
             })
-
-            return logs
         } catch (e: Exception) {
             e.printStackTrace()
         } finally {
@@ -54,6 +52,6 @@ class DockerProcessor {
             }
         }
 
-        return null
+        throw DockerProcessorException()
     }
 }
