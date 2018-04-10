@@ -63,7 +63,7 @@ class SubscribeManager(subscriptionId: String, callback: (message: String, md5su
             subscriber.startAsync().awaitRunning()
             onShutdown.get()
         } finally {
-            subscriber?.stopAsync()
+            subscriber.stopAsync()
         }
     }
 
