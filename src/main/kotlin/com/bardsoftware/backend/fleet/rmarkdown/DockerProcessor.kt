@@ -39,9 +39,8 @@ class DockerProcessor {
             containerId = creation.id()
             docker.startContainer(containerId)
 
-            docker.logs(containerId, stdout(), stderr()).use({
-                stream ->
-                    return stream.readFully() ?: return ""
+            return docker.logs(containerId, stdout(), stderr()).use({
+                stream ->stream.readFully() ?: ""
             })
         } catch (e: Exception) {
             e.printStackTrace()
@@ -55,3 +54,5 @@ class DockerProcessor {
         throw DockerProcessorException()
     }
 }
+
+class DockerProcessorException: Exception()

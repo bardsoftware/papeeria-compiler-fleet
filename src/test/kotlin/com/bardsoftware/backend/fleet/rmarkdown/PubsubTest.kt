@@ -24,7 +24,7 @@ class PubsubTest {
         val message = "hello"
         val sum = "b1946ac92492d2347c6235b4d2611184  -\n"
 
-        val testCallback = { acceptedMessage: String, acceptedMd5sum: String? ->
+        val testCallback = { acceptedMessage: String, acceptedMd5sum: String ->
             assertEquals(message, acceptedMessage)
             assertEquals(sum, acceptedMd5sum)
         }
@@ -39,7 +39,7 @@ class PubsubTest {
         val sum = "b1946ac92492d2347c6235b4d2611184  -\n"
 
         var messagesCount = 0
-        val testCallback = { acceptedMessage: String, acceptedMd5sum: String? ->
+        val testCallback = { acceptedMessage: String, acceptedMd5sum: String ->
             messagesCount++
             assertEquals(message, acceptedMessage)
             assertEquals(sum, acceptedMd5sum)
