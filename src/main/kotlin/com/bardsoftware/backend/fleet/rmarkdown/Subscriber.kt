@@ -22,6 +22,7 @@ import com.google.cloud.pubsub.v1.Subscriber
 import com.google.pubsub.v1.PubsubMessage
 import com.google.pubsub.v1.SubscriptionName
 import com.xenomachina.argparser.ArgParser
+import java.util.concurrent.CompletableFuture
 
 class SubscriberArgs(parser: ArgParser) {
     val subscriberName by parser.storing(
@@ -53,8 +54,14 @@ class SubscribeManager(subscriptionId: String, callback: (message: String, md5su
 
     fun subscribe() {
         val subscriber = Subscriber.newBuilder(this.subscriptionName, this.receiver).build()
+        val onShutdown = CompletableFuture<Any>()
+        Runtime.getRuntime().addShutdownHook(Thread(Runnable {
+            onShutdown.complete(null)
+        }))
+
         try {
             subscriber.startAsync().awaitRunning()
+            onShutdown.get()
         } finally {
             subscriber?.stopAsync()
         }
