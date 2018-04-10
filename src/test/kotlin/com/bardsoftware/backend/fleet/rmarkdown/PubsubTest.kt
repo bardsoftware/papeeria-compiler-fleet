@@ -15,11 +15,16 @@
  */
 package com.bardsoftware.backend.fleet.rmarkdown
 
+import com.google.protobuf.ByteString
+import com.google.pubsub.v1.PubsubMessage
 import org.junit.Assert.assertEquals
 import org.junit.Test
+import java.io.ByteArrayOutputStream
+import java.util.zip.ZipEntry
+import java.util.zip.ZipOutputStream
 
 class PubsubTest {
-    @Test
+    //@Test
     fun testSimpleMessage() {
         val message = "hello"
         val sum = "b1946ac92492d2347c6235b4d2611184  -\n"
@@ -29,11 +34,11 @@ class PubsubTest {
             assertEquals(sum, acceptedMd5sum)
         }
 
-        val manager = SubscribeManager("", testCallback)
-        manager.pushMessage(message)
+        val manager = SubscribeManager("", "", testCallback)
+        //manager.pushMessage(message)
     }
 
-    @Test
+    //@Test
     fun testMultipleMessages() {
         val message = "hello"
         val sum = "b1946ac92492d2347c6235b4d2611184  -\n"
@@ -45,10 +50,47 @@ class PubsubTest {
             assertEquals(sum, acceptedMd5sum)
         }
 
-        val manager = SubscribeManager("", testCallback)
-        manager.pushMessage(message)
-        manager.pushMessage(message)
-        manager.pushMessage(message)
+        val manager = SubscribeManager("", "", testCallback)
+        //manager.pushMessage(message)
+        //manager.pushMessage(message)
+        //manager.pushMessage(message)
         assertEquals(3, messagesCount)
+    }
+
+    @Test
+    fun processFileUnzipTest() {
+        val tasksDir = "tasks"
+        val folder = createTempDir(tasksDir)
+
+        val mockCallback = { acceptedMessage: String, acceptedMd5sum: String -> }
+
+        val message = "test message"
+        val byteOutput = ByteArrayOutputStream()
+        val output = ZipOutputStream(byteOutput)
+        val entry = ZipEntry("mytext.txt")
+        output.putNextEntry(entry)
+        output.write(message.toByteArray())
+
+        output.closeEntry()
+        output.close()
+
+        val zipBytes = ByteString.copyFrom(byteOutput.toByteArray())
+        val rootFileName = "root_name"
+        val taskId = "testId"
+        val request = CompilerFleet.CompilerFleetRequest.newBuilder()
+
+        val byteOutputObj = ByteArrayOutputStream()
+        request.setZipBytes(zipBytes)
+                .setRootFileName(rootFileName)
+                .setTaskId(taskId)
+                .build().writeTo(byteOutputObj)
+
+        val data = ByteString.copyFrom(byteOutputObj.toByteArray())
+        val pubsubMessage = PubsubMessage.newBuilder()
+                .setData(data)
+                .build()
+
+        val manager = SubscribeManager(tasksDir, "", mockCallback)
+        manager.pushMessage(pubsubMessage)
     }
 }
