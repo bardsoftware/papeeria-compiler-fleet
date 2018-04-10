@@ -35,8 +35,8 @@ class Publisher(private val topicName: String) {
     private val PROJECT_ID = ServiceOptions.getDefaultProjectId()
 
     fun publish(message: String) {
-        val topicId = topicName
-        val serviceTopicName = TopicName.of(PROJECT_ID, topicId)
+        val topicId = this.topicName
+        val serviceTopicName = TopicName.of(this.PROJECT_ID, topicId)
         var publisher: Publisher? = null
 
         try {

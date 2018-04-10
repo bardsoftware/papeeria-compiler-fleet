@@ -35,19 +35,19 @@ class DockerProcessor {
                     .cmd("sh", "-c", "echo $quotedMessage | md5sum")
                     .build()
 
-            val creation = docker.createContainer(containerConfig)
+            val creation = this.docker.createContainer(containerConfig)
             containerId = creation.id()
-            docker.startContainer(containerId)
+            this.docker.startContainer(containerId)
 
-            return docker.logs(containerId, stdout(), stderr()).use({
+            return this.docker.logs(containerId, stdout(), stderr()).use({
                 stream ->stream.readFully() ?: ""
             })
         } catch (e: Exception) {
             e.printStackTrace()
         } finally {
             containerId?.let {
-                docker.stopContainer(it, 0)
-                docker.removeContainer(it)
+                this.docker.stopContainer(it, 0)
+                this.docker.removeContainer(it)
             }
         }
 

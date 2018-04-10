@@ -41,9 +41,9 @@ internal class MessageReceiverExample(private val callback: (message: String, md
 
     fun processMessage(message: PubsubMessage) {
         val messageContent = message.data.toStringUtf8()
-        val md5sum = dockerProcessor.getMd5Sum(messageContent)
+        val md5sum = this.dockerProcessor.getMd5Sum(messageContent)
 
-        callback(messageContent, md5sum)
+        this.callback(messageContent, md5sum)
     }
 }
 
@@ -52,7 +52,7 @@ class SubscribeManager(subscriptionId: String, callback: (message: String, md5su
     private val receiver = MessageReceiverExample(callback)
 
     fun subscribe() {
-        val subscriber = Subscriber.newBuilder(subscriptionName, receiver).build()
+        val subscriber = Subscriber.newBuilder(this.subscriptionName, this.receiver).build()
         try {
             subscriber.startAsync().awaitRunning()
         } finally {
@@ -61,7 +61,7 @@ class SubscribeManager(subscriptionId: String, callback: (message: String, md5su
     }
 
     fun pushMessage(message: String) {
-        receiver.processMessage(createMessage(message))
+        this.receiver.processMessage(createMessage(message))
     }
 }
 
