@@ -62,7 +62,7 @@ internal class TaskReceiver(private val tasksDir: Path,
         val request = CompilerFleet.CompilerFleetRequest.parseFrom(message.data)
 
         val taskId = request.taskId
-        val destination = tasksDir.resolve(taskId).resolve("files")
+        val destination = this.tasksDir.resolve(taskId).resolve("files")
         val zipByteInput = ByteArrayInputStream(request.zipBytes.toByteArray())
         val zipStream = ZipInputStream(zipByteInput)
         var entry: ZipEntry? = zipStream.nextEntry
@@ -93,7 +93,7 @@ internal class TaskReceiver(private val tasksDir: Path,
 
         val content = readFileToString(pathToRoot, Charset.defaultCharset())
         val md5sum = dockerProcessor.getMd5Sum(content)
-        callback("md5 sum of root file", md5sum)
+        this.callback("md5 sum of root file", md5sum)
     }
 }
 
