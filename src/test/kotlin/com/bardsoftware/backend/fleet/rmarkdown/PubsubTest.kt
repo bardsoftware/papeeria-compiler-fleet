@@ -17,53 +17,27 @@ package com.bardsoftware.backend.fleet.rmarkdown
 
 import com.google.protobuf.ByteString
 import com.google.pubsub.v1.PubsubMessage
+import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Before
 import org.junit.Test
 import java.io.ByteArrayOutputStream
+import java.io.File
+import java.nio.file.Files
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
 
 class PubsubTest {
-    //@Test
-    fun testSimpleMessage() {
-        val message = "hello"
-        val sum = "b1946ac92492d2347c6235b4d2611184  -\n"
+    val tasksDir = "tasks"
 
-        val testCallback = { acceptedMessage: String, acceptedMd5sum: String ->
-            assertEquals(message, acceptedMessage)
-            assertEquals(sum, acceptedMd5sum)
-        }
 
-        val manager = SubscribeManager("", "", testCallback)
-        //manager.pushMessage(message)
-    }
-
-    //@Test
-    fun testMultipleMessages() {
-        val message = "hello"
-        val sum = "b1946ac92492d2347c6235b4d2611184  -\n"
-
-        var messagesCount = 0
-        val testCallback = { acceptedMessage: String, acceptedMd5sum: String ->
-            messagesCount++
-            assertEquals(message, acceptedMessage)
-            assertEquals(sum, acceptedMd5sum)
-        }
-
-        val manager = SubscribeManager("", "", testCallback)
-        //manager.pushMessage(message)
-        //manager.pushMessage(message)
-        //manager.pushMessage(message)
-        assertEquals(3, messagesCount)
+    @Before
+    fun createDir() {
+        File(tasksDir).mkdir()
     }
 
     @Test
     fun processFileUnzipTest() {
-        val tasksDir = "tasks"
-        val folder = createTempDir(tasksDir)
-
-        val mockCallback = { acceptedMessage: String, acceptedMd5sum: String -> }
-
         val message = "test message"
         val byteOutput = ByteArrayOutputStream()
         val output = ZipOutputStream(byteOutput)
@@ -75,7 +49,7 @@ class PubsubTest {
         output.close()
 
         val zipBytes = ByteString.copyFrom(byteOutput.toByteArray())
-        val rootFileName = "root_name"
+        val rootFileName = "mytext.txt"
         val taskId = "testId"
         val request = CompilerFleet.CompilerFleetRequest.newBuilder()
 
@@ -90,7 +64,16 @@ class PubsubTest {
                 .setData(data)
                 .build()
 
+        val mockCallback = { acceptedMessage: String, acceptedMd5sum: String ->
+            assertEquals("f11a425906289abf8cce1733622834c8  -\n", acceptedMd5sum)
+        }
+
         val manager = SubscribeManager(tasksDir, "", mockCallback)
         manager.pushMessage(pubsubMessage)
+    }
+
+    @After
+    fun deleteDir() {
+        File(tasksDir).deleteRecursively()
     }
 }

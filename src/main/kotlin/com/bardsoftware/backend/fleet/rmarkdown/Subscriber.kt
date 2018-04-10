@@ -22,9 +22,11 @@ import com.google.cloud.pubsub.v1.Subscriber
 import com.google.pubsub.v1.PubsubMessage
 import com.google.pubsub.v1.SubscriptionName
 import com.xenomachina.argparser.ArgParser
+import org.apache.commons.io.FileUtils.readFileToString
 import java.io.ByteArrayInputStream
 import java.io.File
 import java.io.FileOutputStream
+import java.nio.charset.Charset
 import java.nio.file.Path
 import java.nio.file.Paths
 import java.util.concurrent.CompletableFuture
@@ -44,11 +46,12 @@ class SubscriberArgs(parser: ArgParser) {
 
 private val PROJECT_ID = ServiceOptions.getDefaultProjectId()
 
-internal class MessageReceiverExample(private val tasksDir: Path,
-                                      private val callback: (message: String, md5sum: String) -> Unit
+internal class TaskReceiver(private val tasksDir: Path,
+                            private val callback: (message: String, md5sum: String) -> Unit
 ) : MessageReceiver {
     private val dockerProcessor = DockerProcessor()
     private val BUFFER_SIZE = 4096
+
 
     override fun receiveMessage(message: PubsubMessage, consumer: AckReplyConsumer) {
         processMessage(message)
@@ -56,9 +59,7 @@ internal class MessageReceiverExample(private val tasksDir: Path,
     }
 
     fun processMessage(message: PubsubMessage) {
-        val request = CompilerFleet.CompilerFleetRequest
-                                                                       .newBuilder()
-                                                                       .mergeFrom(message.data.toByteArray())
+        val request = CompilerFleet.CompilerFleetRequest.parseFrom(message.data)
 
         val taskId = request.taskId
         val destination = tasksDir.resolve(taskId).resolve("files")
@@ -83,6 +84,16 @@ internal class MessageReceiverExample(private val tasksDir: Path,
             fos.close()
             entry = zipStream.nextEntry
         }
+
+        val rootFileName = request.rootFileName
+        val pathToRoot = destination.resolve(rootFileName).toFile()
+        if (!pathToRoot.exists()) {
+            throw RootFileNotFoundException()
+        }
+
+        val content = readFileToString(pathToRoot, Charset.defaultCharset())
+        val md5sum = dockerProcessor.getMd5Sum(content)
+        callback("md5 sum of root file", md5sum)
     }
 }
 
@@ -90,7 +101,21 @@ class SubscribeManager(tasksDir: String,
                        subscriptionId: String,
                        callback: (message: String, md5sum: String) -> Unit) {
     private val subscriptionName = SubscriptionName.of(PROJECT_ID, subscriptionId)
-    private val receiver = MessageReceiverExample(Paths.get(tasksDir), callback)
+    private val receiver: TaskReceiver
+
+    init {
+        val directory = Paths.get(tasksDir)
+
+        if (!directory.toFile().exists()) {
+            throw DirectoryNotExistException()
+        }
+
+        if (!directory.toFile().canWrite()) {
+            throw DirectoryNotWriteableException()
+        }
+
+        this.receiver = TaskReceiver(directory, callback)
+    }
 
     fun subscribe() {
         val subscriber = Subscriber.newBuilder(this.subscriptionName, this.receiver).build()
