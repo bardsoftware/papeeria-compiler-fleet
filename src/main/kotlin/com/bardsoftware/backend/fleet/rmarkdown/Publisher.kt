@@ -23,21 +23,25 @@ import com.google.protobuf.ByteString
 import com.google.pubsub.v1.PubsubMessage
 import com.google.pubsub.v1.TopicName
 
+fun createMessage(message: String): PubsubMessage {
+    val data = ByteString.copyFromUtf8(message)
+
+    return PubsubMessage.newBuilder()
+            .setData(data)
+            .build()
+}
+
 class Publisher(private val topicName: String) {
     private val PROJECT_ID = ServiceOptions.getDefaultProjectId()
 
     fun publish(message: String) {
-        val topicId = topicName
-        val serviceTopicName = TopicName.of(PROJECT_ID, topicId)
+        val topicId = this.topicName
+        val serviceTopicName = TopicName.of(this.PROJECT_ID, topicId)
         var publisher: Publisher? = null
 
         try {
             publisher = Publisher.newBuilder(serviceTopicName).build()
-
-            val data = ByteString.copyFromUtf8(message)
-            val pubsubMessage = PubsubMessage.newBuilder()
-                    .setData(data)
-                    .build()
+            val pubsubMessage = createMessage(message)
 
             val future = publisher.publish(pubsubMessage)
 

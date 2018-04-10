@@ -17,12 +17,14 @@ package com.bardsoftware.backend.fleet.rmarkdown
 
 import com.spotify.docker.client.DefaultDockerClient
 import com.spotify.docker.client.DockerClient
+import com.spotify.docker.client.DockerClient.LogsParam.stderr
+import com.spotify.docker.client.DockerClient.LogsParam.stdout
 import com.spotify.docker.client.messages.ContainerConfig
 
 class DockerProcessor {
     private val docker: DockerClient = DefaultDockerClient.fromEnv().build()
 
-    fun getMd5Sum(message: String): String? {
+    fun getMd5Sum(message: String): String {
         var containerId: String? = null
 
         try {
@@ -30,23 +32,27 @@ class DockerProcessor {
 
             val containerConfig = ContainerConfig.builder()
                     .image("busybox")
-                    .cmd("sh", "-c", "md5sum", "<<<", quotedMessage)
+                    .cmd("sh", "-c", "echo $quotedMessage | md5sum")
                     .build()
 
-            val creation = docker.createContainer(containerConfig)
+            val creation = this.docker.createContainer(containerConfig)
             containerId = creation.id()
-            docker.startContainer(containerId)
+            this.docker.startContainer(containerId)
 
-            return docker.logs(containerId, DockerClient.LogsParam.stdout()).readFully()
+            return this.docker.logs(containerId, stdout(), stderr()).use({
+                stream ->stream.readFully() ?: ""
+            })
         } catch (e: Exception) {
             e.printStackTrace()
         } finally {
             containerId?.let {
-                docker.stopContainer(it, 0)
-                docker.removeContainer(it)
+                this.docker.stopContainer(it, 0)
+                this.docker.removeContainer(it)
             }
         }
 
-        return null
+        throw DockerProcessorException()
     }
 }
+
+class DockerProcessorException: Exception()

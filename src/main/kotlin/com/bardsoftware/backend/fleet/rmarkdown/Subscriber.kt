@@ -22,7 +22,7 @@ import com.google.cloud.pubsub.v1.Subscriber
 import com.google.pubsub.v1.PubsubMessage
 import com.google.pubsub.v1.SubscriptionName
 import com.xenomachina.argparser.ArgParser
-import java.util.concurrent.LinkedBlockingDeque
+import java.util.concurrent.CompletableFuture
 
 class SubscriberArgs(parser: ArgParser) {
     val subscriberName by parser.storing(
@@ -32,35 +32,54 @@ class SubscriberArgs(parser: ArgParser) {
 
 private val PROJECT_ID = ServiceOptions.getDefaultProjectId()
 
-private val messages = LinkedBlockingDeque<PubsubMessage>()
-
-internal class MessageReceiverExample : MessageReceiver {
+internal class MessageReceiverExample(private val callback: (message: String, md5sum: String) -> Unit) : MessageReceiver {
+    private val dockerProcessor = DockerProcessor()
 
     override fun receiveMessage(message: PubsubMessage, consumer: AckReplyConsumer) {
-        messages.offer(message)
+        processMessage(message)
         consumer.ack()
+    }
+
+    fun processMessage(message: PubsubMessage) {
+        val messageContent = message.data.toStringUtf8()
+        val md5sum = this.dockerProcessor.getMd5Sum(messageContent)
+
+        this.callback(messageContent, md5sum)
+    }
+}
+
+class SubscribeManager(subscriptionId: String, callback: (message: String, md5sum: String) -> Unit) {
+    private val subscriptionName = SubscriptionName.of(PROJECT_ID, subscriptionId)
+    private val receiver = MessageReceiverExample(callback)
+
+    fun subscribe() {
+        val subscriber = Subscriber.newBuilder(this.subscriptionName, this.receiver).build()
+        val onShutdown = CompletableFuture<Any>()
+        Runtime.getRuntime().addShutdownHook(Thread(Runnable {
+            onShutdown.complete(null)
+        }))
+
+        try {
+            subscriber.startAsync().awaitRunning()
+            onShutdown.get()
+        } finally {
+            subscriber.stopAsync()
+        }
+    }
+
+    fun pushMessage(message: String) {
+        this.receiver.processMessage(createMessage(message))
     }
 }
 
 fun main(args: Array<String>) {
-    val dockerProcessor = DockerProcessor()
     val parsedArgs = ArgParser(args).parseInto(::SubscriberArgs)
     val subscriptionId = parsedArgs.subscriberName
-    val subscriptionName = SubscriptionName.of(PROJECT_ID, subscriptionId)
 
-    var subscriber: Subscriber? = null
-    try {
-        subscriber = Subscriber.newBuilder(subscriptionName, MessageReceiverExample()).build()
-        subscriber.startAsync().awaitRunning()
-        while (true) {
-            val message = messages.take()
-            val messageContent = message.data.toStringUtf8()
-
-            println("Message Id: " + message.messageId)
-            println("Data: $messageContent")
-            println("md5 sum: " + dockerProcessor.getMd5Sum(messageContent))
-        }
-    } finally {
-        subscriber?.stopAsync()
+    val printerCallback = { message: String, md5sum: String? ->
+        println("Data: $message")
+        println("md5 sum: $md5sum")
     }
+
+    SubscribeManager(subscriptionId, printerCallback).subscribe()
 }
