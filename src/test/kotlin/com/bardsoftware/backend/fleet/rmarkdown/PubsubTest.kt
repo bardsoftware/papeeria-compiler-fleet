@@ -4,7 +4,6 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class PubsubTest {
-    private val publisher = Publisher("")
     private val SubscribeManager = SubscribeManager("")
 
     @Test
@@ -28,16 +27,17 @@ class PubsubTest {
 
         var messagesCount = 0
         val testCallback = { acceptedMessage: String, acceptedMd5sum: String? ->
+            messagesCount++
             assertEquals(message, acceptedMessage)
             assertEquals(sum, acceptedMd5sum)
-
-            messagesCount++
-            if (messagesCount == 3) {
-                SubscribeManager.shutdown()
-            }
         }
 
         SubscribeManager.pushMessage(message)
+        SubscribeManager.pushMessage(message)
+        SubscribeManager.pushMessage(message)
         SubscribeManager.processMessage(testCallback)
+        SubscribeManager.processMessage(testCallback)
+        SubscribeManager.processMessage(testCallback)
+        assertEquals(3, messagesCount)
     }
 }

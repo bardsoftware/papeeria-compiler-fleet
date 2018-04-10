@@ -15,7 +15,7 @@ class DockerTest {
                 "68b329da9893e34099c7d8ad5cb9c940  -\n",
                 "e5870c1091c20ed693976546d23b4841  -\n")
 
-        for ((index, message) in messages.withIndex()) {
+        for ((index, _) in messages.withIndex()) {
             assertEquals(answers[index], dockerProcessor.getMd5Sum(messages[index]))
         }
     }
