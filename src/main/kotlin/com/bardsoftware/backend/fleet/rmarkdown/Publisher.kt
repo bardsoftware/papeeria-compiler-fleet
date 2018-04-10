@@ -33,11 +33,7 @@ class Publisher(private val topicName: String) {
 
         try {
             publisher = Publisher.newBuilder(serviceTopicName).build()
-
-            val data = ByteString.copyFromUtf8(message)
-            val pubsubMessage = PubsubMessage.newBuilder()
-                    .setData(data)
-                    .build()
+            val pubsubMessage = createMessage(message)
 
             val future = publisher.publish(pubsubMessage)
 
@@ -54,6 +50,17 @@ class Publisher(private val topicName: String) {
             })
         } finally {
             publisher?.shutdown()
+        }
+    }
+
+    companion object {
+        fun createMessage(message: String): PubsubMessage? {
+            val data = ByteString.copyFromUtf8(message)
+            val pubsubMessage = PubsubMessage.newBuilder()
+                    .setData(data)
+                    .build()
+
+            return pubsubMessage
         }
     }
 }

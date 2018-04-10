@@ -19,6 +19,7 @@ import com.google.cloud.ServiceOptions
 import com.google.cloud.pubsub.v1.AckReplyConsumer
 import com.google.cloud.pubsub.v1.MessageReceiver
 import com.google.cloud.pubsub.v1.Subscriber
+import com.google.protobuf.ByteString
 import com.google.pubsub.v1.PubsubMessage
 import com.google.pubsub.v1.SubscriptionName
 import com.xenomachina.argparser.ArgParser
@@ -46,7 +47,6 @@ class SubscribeManager(subscriptionId: String) {
     private val dockerProcessor = DockerProcessor()
     private val subscriptionName = SubscriptionName.of(PROJECT_ID, subscriptionId)
     private var subscriber: Subscriber? = null
-    private var finished = false
 
     fun subscribe(callback: (message: String, md5sum: String?) -> Unit) {
         try {
@@ -54,23 +54,23 @@ class SubscribeManager(subscriptionId: String) {
             subscriber?.startAsync()?.awaitRunning()
 
             while (true) {
-                if (finished) {
-                    break
-                }
-
-                val message = messages.take()
-                val messageContent = message.data.toStringUtf8()
-                val md5sum = dockerProcessor.getMd5Sum(messageContent)
-
-                callback(messageContent, md5sum)
+                processMessage(callback)
             }
         } finally {
             subscriber?.stopAsync()
         }
     }
 
-    fun shutdown() {
-        finished = true
+    fun processMessage(callback: (message: String, md5sum: String?) -> Unit) {
+        val message = messages.take()
+        val messageContent = message.data.toStringUtf8()
+        val md5sum = dockerProcessor.getMd5Sum(messageContent)
+
+        callback(messageContent, md5sum)
+    }
+
+    fun pushMessage(message: String) {
+        messages.push(Publisher.createMessage(message))
     }
 }
 

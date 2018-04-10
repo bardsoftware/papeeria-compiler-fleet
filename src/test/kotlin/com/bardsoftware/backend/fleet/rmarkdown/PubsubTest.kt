@@ -4,40 +4,27 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class PubsubTest {
-    // Maybe, it's good to create topic only for tests
-    private val testTopic = "rmarkdown-tasks"
-
-    // Same for subscription
-    private val testSubscription = "rmarkdown-compiler"
-
-    private val publisher = Publisher(testTopic)
-    private val SubscribeManager = SubscribeManager(testSubscription)
+    private val publisher = Publisher("")
+    private val SubscribeManager = SubscribeManager("")
 
     @Test
     fun testSimpleMessage() {
         val message = "hello"
-        val sum = "d41d8cd98f00b204e9800998ecf8427e  -\n"
-
-        publisher.publish(message)
+        val sum = "b1946ac92492d2347c6235b4d2611184  -\n"
 
         val testCallback = { acceptedMessage: String, acceptedMd5sum: String? ->
             assertEquals(message, acceptedMessage)
             assertEquals(sum, acceptedMd5sum)
-
-            SubscribeManager.shutdown()
         }
 
-        SubscribeManager.subscribe(testCallback)
+        SubscribeManager.pushMessage(message)
+        SubscribeManager.processMessage(testCallback)
     }
 
     @Test
     fun testMultipleMessages() {
         val message = "hello"
-        val sum = "d41d8cd98f00b204e9800998ecf8427e  -\n"
-
-        publisher.publish(message)
-        publisher.publish(message)
-        publisher.publish(message)
+        val sum = "b1946ac92492d2347c6235b4d2611184  -\n"
 
         var messagesCount = 0
         val testCallback = { acceptedMessage: String, acceptedMd5sum: String? ->
@@ -50,6 +37,7 @@ class PubsubTest {
             }
         }
 
-        SubscribeManager.subscribe(testCallback)
+        SubscribeManager.pushMessage(message)
+        SubscribeManager.processMessage(testCallback)
     }
 }
