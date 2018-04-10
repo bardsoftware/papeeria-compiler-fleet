@@ -22,18 +22,33 @@ import com.google.cloud.pubsub.v1.Subscriber
 import com.google.pubsub.v1.PubsubMessage
 import com.google.pubsub.v1.SubscriptionName
 import com.xenomachina.argparser.ArgParser
+import java.io.ByteArrayInputStream
+import java.io.File
+import java.io.FileOutputStream
+import java.nio.file.Path
+import java.nio.file.Paths
 import java.util.concurrent.CompletableFuture
+import java.util.zip.ZipEntry
+import java.util.zip.ZipInputStream
 
 class SubscriberArgs(parser: ArgParser) {
     val subscriberName by parser.storing(
             "--sub",
             help = "subscription topic name")
+
+    val tasksDir by parser.storing(
+            "--tasks-dir",
+            help = "root of tasks content"
+    )
 }
 
 private val PROJECT_ID = ServiceOptions.getDefaultProjectId()
 
-internal class MessageReceiverExample(private val callback: (message: String, md5sum: String) -> Unit) : MessageReceiver {
+internal class MessageReceiverExample(private val tasksDir: Path,
+                                      private val callback: (message: String, md5sum: String) -> Unit
+) : MessageReceiver {
     private val dockerProcessor = DockerProcessor()
+    private val BUFFER_SIZE = 4096
 
     override fun receiveMessage(message: PubsubMessage, consumer: AckReplyConsumer) {
         processMessage(message)
@@ -41,16 +56,41 @@ internal class MessageReceiverExample(private val callback: (message: String, md
     }
 
     fun processMessage(message: PubsubMessage) {
-        val messageContent = message.data.toStringUtf8()
-        val md5sum = this.dockerProcessor.getMd5Sum(messageContent)
+        val request = CompilerFleet.CompilerFleetRequest
+                                                                       .newBuilder()
+                                                                       .mergeFrom(message.data.toByteArray())
 
-        this.callback(messageContent, md5sum)
+        val taskId = request.taskId
+        val destination = tasksDir.resolve(taskId).resolve("files")
+        val zipByteInput = ByteArrayInputStream(request.zipBytes.toByteArray())
+        val zipStream = ZipInputStream(zipByteInput)
+        var entry: ZipEntry? = zipStream.nextEntry
+        val buffer = ByteArray(this.BUFFER_SIZE)
+
+        while (entry != null) {
+            val filename = entry.name
+            val newFile = destination.resolve(filename).toFile()
+
+            File(newFile.parent).mkdirs()
+            val fos = FileOutputStream(newFile)
+
+            var len: Int = zipStream.read(buffer)
+            while (len > 0) {
+                fos.write(buffer, 0, len)
+                len = zipStream.read(buffer)
+            }
+
+            fos.close()
+            entry = zipStream.nextEntry
+        }
     }
 }
 
-class SubscribeManager(subscriptionId: String, callback: (message: String, md5sum: String) -> Unit) {
+class SubscribeManager(tasksDir: String,
+                       subscriptionId: String,
+                       callback: (message: String, md5sum: String) -> Unit) {
     private val subscriptionName = SubscriptionName.of(PROJECT_ID, subscriptionId)
-    private val receiver = MessageReceiverExample(callback)
+    private val receiver = MessageReceiverExample(Paths.get(tasksDir), callback)
 
     fun subscribe() {
         val subscriber = Subscriber.newBuilder(this.subscriptionName, this.receiver).build()
@@ -67,19 +107,20 @@ class SubscribeManager(subscriptionId: String, callback: (message: String, md5su
         }
     }
 
-    fun pushMessage(message: String) {
-        this.receiver.processMessage(createMessage(message))
+    fun pushMessage(message: PubsubMessage) {
+        this.receiver.processMessage(message)
     }
 }
 
 fun main(args: Array<String>) {
     val parsedArgs = ArgParser(args).parseInto(::SubscriberArgs)
     val subscriptionId = parsedArgs.subscriberName
+    val tasksDir = parsedArgs.tasksDir
 
     val printerCallback = { message: String, md5sum: String? ->
         println("Data: $message")
         println("md5 sum: $md5sum")
     }
 
-    SubscribeManager(subscriptionId, printerCallback).subscribe()
+    SubscribeManager(tasksDir, subscriptionId, printerCallback).subscribe()
 }
