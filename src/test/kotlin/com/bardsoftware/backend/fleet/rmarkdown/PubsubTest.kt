@@ -23,17 +23,18 @@ import org.junit.Before
 import org.junit.Test
 import java.io.ByteArrayOutputStream
 import java.io.File
+import java.io.IOException
 import java.nio.file.Files
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
 
 class PubsubTest {
-    val tasksDir = "tasks"
-
+    private val tasksDir = "tasks"
+    private var rootFileName = "mytext.txt"
 
     @Before
     fun createDir() {
-        File(tasksDir).mkdir()
+        File(this.tasksDir).mkdir()
     }
 
     @Test
@@ -49,7 +50,6 @@ class PubsubTest {
         output.close()
 
         val zipBytes = ByteString.copyFrom(byteOutput.toByteArray())
-        val rootFileName = "mytext.txt"
         val taskId = "testId"
         val request = CompilerFleet.CompilerFleetRequest.newBuilder()
 
@@ -72,8 +72,26 @@ class PubsubTest {
         manager.pushMessage(pubsubMessage)
     }
 
+    @Test(expected = IOException::class)
+    fun dirNotExistTest() {
+        deleteDir()
+        processFileUnzipTest()
+    }
+
+    @Test(expected = IOException::class)
+    fun dirNotWritableTest() {
+        File(this.tasksDir).setWritable(false)
+        processFileUnzipTest()
+    }
+
+    @Test(expected = IOException::class)
+    fun rootFileNameNotExist() {
+        this.rootFileName = "another name"
+        processFileUnzipTest()
+    }
+
     @After
     fun deleteDir() {
-        File(tasksDir).deleteRecursively()
+        File(this.tasksDir).deleteRecursively()
     }
 }
