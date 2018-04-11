@@ -15,23 +15,21 @@
  */
 package com.bardsoftware.backend.fleet.rmarkdown
 
+import org.apache.commons.io.FileUtils
 import org.junit.Assert.assertEquals
 import org.junit.Test
+import java.nio.charset.Charset
 
 class DockerTest {
     private val dockerProcessor = DockerProcessor()
 
     @Test
     fun testMessageSum() {
-        val messages = listOf("test", "hello", "", "0123")
-        val answers = listOf(
-                "d8e8fca2dc0f896fd7cb4cb0031ba249  -\n",
-                "b1946ac92492d2347c6235b4d2611184  -\n",
-                "68b329da9893e34099c7d8ad5cb9c940  -\n",
-                "e5870c1091c20ed693976546d23b4841  -\n")
+        val file = createTempFile("test", ".txt")
 
-        (answers zip messages).forEach {
-            assertEquals(it.first, dockerProcessor.getMd5Sum(it.second))
-        }
+        FileUtils.writeStringToFile(file, "hello message", Charset.defaultCharset())
+
+        val actualSum = dockerProcessor.getMd5Sum(file)
+        assertEquals("387d1f75a179d782a473cf21fb893e33  -\n", actualSum)
     }
 }

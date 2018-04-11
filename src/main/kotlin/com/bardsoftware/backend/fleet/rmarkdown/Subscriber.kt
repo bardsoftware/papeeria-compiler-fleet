@@ -81,12 +81,12 @@ internal class TaskReceiver(private val tasksDir: Path,
         }
 
         val rootFileName = request.rootFileName
-        val pathToRoot = destination.resolve(rootFileName)
-        if (!pathToRoot.toFile().exists()) {
+        val rootFile = destination.resolve(rootFileName).toFile()
+        if (!rootFile.exists()) {
             throw IOException("path to root doesn't exists")
         }
 
-        this.callback("md5 sum of root file", dockerProcessor.getMd5Sum(pathToRoot))
+        this.callback("md5 sum of root file", dockerProcessor.getMd5Sum(rootFile))
     }
 }
 
