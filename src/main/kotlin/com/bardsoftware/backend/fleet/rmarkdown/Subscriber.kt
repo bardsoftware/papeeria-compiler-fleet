@@ -19,6 +19,7 @@ import com.google.cloud.ServiceOptions
 import com.google.cloud.pubsub.v1.AckReplyConsumer
 import com.google.cloud.pubsub.v1.MessageReceiver
 import com.google.cloud.pubsub.v1.Subscriber
+import com.google.common.io.ByteStreams
 import com.google.pubsub.v1.PubsubMessage
 import com.google.pubsub.v1.SubscriptionName
 import com.xenomachina.argparser.ArgParser
@@ -26,6 +27,7 @@ import org.apache.commons.io.FileUtils.readFileToString
 import java.io.ByteArrayInputStream
 import java.io.File
 import java.io.FileOutputStream
+import java.io.IOException
 import java.nio.charset.Charset
 import java.nio.file.Path
 import java.nio.file.Paths
@@ -61,27 +63,22 @@ internal class TaskReceiver(private val tasksDir: Path,
     fun processMessage(message: PubsubMessage) {
         val request = CompilerFleet.CompilerFleetRequest.parseFrom(message.data)
 
-        val taskId = request.taskId
-        val destination = this.tasksDir.resolve(taskId).resolve("files")
-        val zipByteInput = ByteArrayInputStream(request.zipBytes.toByteArray())
-        val zipStream = ZipInputStream(zipByteInput)
+        val destination = this.tasksDir.resolve(request.taskId).resolve("files")
+        val zipStream = ZipInputStream(ByteArrayInputStream(request.zipBytes.toByteArray()))
         var entry: ZipEntry? = zipStream.nextEntry
-        val buffer = ByteArray(this.BUFFER_SIZE)
 
         while (entry != null) {
             val filename = entry.name
             val newFile = destination.resolve(filename).toFile()
 
-            File(newFile.parent).mkdirs()
-            val fos = FileOutputStream(newFile)
-
-            var len: Int = zipStream.read(buffer)
-            while (len > 0) {
-                fos.write(buffer, 0, len)
-                len = zipStream.read(buffer)
+            if (!File(newFile.parent).mkdirs()) {
+                throw IOException()
             }
 
-            fos.close()
+            FileOutputStream(newFile).use {
+                ByteStreams.copy(zipStream, it)
+            }
+
             entry = zipStream.nextEntry
         }
 
