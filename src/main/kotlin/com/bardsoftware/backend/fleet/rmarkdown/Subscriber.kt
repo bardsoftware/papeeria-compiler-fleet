@@ -52,8 +52,6 @@ internal class TaskReceiver(private val tasksDir: Path,
                             private val callback: (message: String, md5sum: String) -> Unit
 ) : MessageReceiver {
     private val dockerProcessor = DockerProcessor()
-    private val BUFFER_SIZE = 4096
-
 
     override fun receiveMessage(message: PubsubMessage, consumer: AckReplyConsumer) {
         processMessage(message)
@@ -83,14 +81,12 @@ internal class TaskReceiver(private val tasksDir: Path,
         }
 
         val rootFileName = request.rootFileName
-        val pathToRoot = destination.resolve(rootFileName).toFile()
-        if (!pathToRoot.exists()) {
+        val pathToRoot = destination.resolve(rootFileName)
+        if (!pathToRoot.toFile().exists()) {
             throw RootFileNotFoundException()
         }
 
-        val content = readFileToString(pathToRoot, Charset.defaultCharset())
-        val md5sum = dockerProcessor.getMd5Sum(content)
-        this.callback("md5 sum of root file", md5sum)
+        this.callback("md5 sum of root file", dockerProcessor.getMd5Sum(pathToRoot))
     }
 }
 

@@ -20,23 +20,24 @@ import com.spotify.docker.client.DockerClient
 import com.spotify.docker.client.DockerClient.LogsParam.stderr
 import com.spotify.docker.client.DockerClient.LogsParam.stdout
 import com.spotify.docker.client.messages.ContainerConfig
+import java.nio.file.Path
 
 class DockerProcessor {
     private val docker: DockerClient = DefaultDockerClient.fromEnv().build()
 
-    fun getMd5Sum(message: String): String {
+    fun getMd5Sum(filePath: Path): String {
+        val dockerFilePath = "copiedFile"
         var containerId: String? = null
 
         try {
-            val quotedMessage = "\"$message\""
-
             val containerConfig = ContainerConfig.builder()
                     .image("busybox")
-                    .cmd("sh", "-c", "echo $quotedMessage | md5sum")
+                    .cmd("sh", "-c", "md5sum", dockerFilePath)
                     .build()
 
             val creation = this.docker.createContainer(containerConfig)
             containerId = creation.id()
+            this.docker.copyToContainer(filePath, containerId, dockerFilePath)
             this.docker.startContainer(containerId)
 
             return this.docker.logs(containerId, stdout(), stderr()).use({
