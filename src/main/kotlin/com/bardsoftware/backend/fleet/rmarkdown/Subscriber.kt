@@ -70,7 +70,7 @@ internal class TaskReceiver(private val tasksDir: Path,
             val newFile = destination.resolve(filename).toFile()
 
             if (!File(newFile.parent).mkdirs()) {
-                throw IOException()
+                throw IOException("unable to create dirs while unzipping")
             }
 
             FileOutputStream(newFile).use {
@@ -83,7 +83,7 @@ internal class TaskReceiver(private val tasksDir: Path,
         val rootFileName = request.rootFileName
         val pathToRoot = destination.resolve(rootFileName)
         if (!pathToRoot.toFile().exists()) {
-            throw RootFileNotFoundException()
+            throw IOException("path to root doesn't exists")
         }
 
         this.callback("md5 sum of root file", dockerProcessor.getMd5Sum(pathToRoot))
@@ -100,11 +100,11 @@ class SubscribeManager(tasksDir: String,
         val directory = Paths.get(tasksDir)
 
         if (!directory.toFile().exists()) {
-            throw DirectoryNotExistException()
+            throw IOException("tasksDir directory doesn't exists")
         }
 
         if (!directory.toFile().canWrite()) {
-            throw DirectoryNotWriteableException()
+            throw IOException("tasksDir directory isn't writable")
         }
 
         this.receiver = TaskReceiver(directory, callback)

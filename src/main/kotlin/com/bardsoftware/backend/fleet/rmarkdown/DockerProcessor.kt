@@ -55,3 +55,5 @@ class DockerProcessor {
         throw DockerProcessorException()
     }
 }
+
+class DockerProcessorException: Exception()
