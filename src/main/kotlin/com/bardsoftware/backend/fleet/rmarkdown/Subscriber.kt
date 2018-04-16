@@ -61,7 +61,8 @@ internal class TaskReceiver(private val tasksDir: Path,
     fun processMessage(message: PubsubMessage) {
         val request = CompilerFleet.CompilerFleetRequest.parseFrom(message.data)
 
-        val destination = this.tasksDir.resolve(request.taskId).resolve("files")
+        val taskId = request.taskId
+        val destination = this.tasksDir.resolve(taskId).resolve("files")
         val zipStream = ZipInputStream(ByteArrayInputStream(request.zipBytes.toByteArray()))
         var entry: ZipEntry? = zipStream.nextEntry
 
@@ -70,7 +71,8 @@ internal class TaskReceiver(private val tasksDir: Path,
             val newFile = destination.resolve(filename).toFile()
 
             if (!newFile.parentFile.mkdirs()) {
-                throw IOException("unable to create dirs while unzipping")
+                val dirName = newFile.parentFile.name
+                throw IOException("In task(id = $taskId): unable to create $dirName directory while unzipping")
             }
 
             FileOutputStream(newFile).use {
@@ -83,7 +85,7 @@ internal class TaskReceiver(private val tasksDir: Path,
         val rootFileName = request.rootFileName
         val rootFile = destination.resolve(rootFileName).toFile()
         if (!rootFile.exists()) {
-            throw IOException("path to root doesn't exists")
+            throw IOException("In task(id = $taskId): path to root file doesn't exists")
         }
 
         this.callback("md5 sum of root file", dockerProcessor.getMd5Sum(rootFile))
@@ -98,13 +100,18 @@ class SubscribeManager(tasksDir: String,
 
     init {
         val directory = Paths.get(tasksDir)
+        val directoryName = directory.toFile().name
+
+        if (!directory.toFile().isDirectory) {
+            throw IOException("tasksDir directory(name is $directoryName) actually isn't a directory")
+        }
 
         if (!directory.toFile().exists()) {
-            throw IOException("tasksDir directory doesn't exists")
+            throw IOException("tasksDir directory(name is $directoryName) doesn't exists")
         }
 
         if (!directory.toFile().canWrite()) {
-            throw IOException("tasksDir directory isn't writable")
+            throw IOException("tasksDir directory(name is $directoryName) isn't writable")
         }
 
         this.receiver = TaskReceiver(directory, callback)

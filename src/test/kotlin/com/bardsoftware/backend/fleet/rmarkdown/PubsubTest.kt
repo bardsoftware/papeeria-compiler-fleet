@@ -73,6 +73,13 @@ class PubsubTest {
     }
 
     @Test(expected = IOException::class)
+    fun fileIsNotDirTest() {
+        deleteDir()
+        File(this.tasksDir).createNewFile()
+        processFileUnzipTest()
+    }
+
+    @Test(expected = IOException::class)
     fun dirNotExistTest() {
         deleteDir()
         processFileUnzipTest()
