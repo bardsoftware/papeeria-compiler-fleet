@@ -1,17 +1,17 @@
 /**
-    Copyright 2018 BarD Software s.r.o
+Copyright 2018 BarD Software s.r.o
 
-    Licensed under the Apache License, Version 2.0 (the "License");
-    you may not use this file except in compliance with the License.
-    You may obtain a copy of the License at
-    http://www.apache.org/licenses/LICENSE-2.0
-    Unless required by applicable law or agreed to in writing, software
-    distributed under the License is distributed on an "AS IS" BASIS,
-    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-    See the License for the specific language governing permissions and
-    limitations under the License.
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+http://www.apache.org/licenses/LICENSE-2.0
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
 
-    Author: Mikhail Shavkunov (@shavkunov)
+Author: Mikhail Shavkunov (@shavkunov)
  */
 package com.bardsoftware.backend.fleet.rmarkdown
 
@@ -32,25 +32,41 @@ fun createMessage(message: String): PubsubMessage {
             .build()
 }
 
+fun getRequestData(zipBytes: ByteArray, rootFileName: String, taskId: String): ByteString {
+    val byteOutput = ByteArrayOutputStream()
+    CompilerFleet.CompilerFleetRequest.newBuilder()
+            .setZipBytes(ByteString.copyFrom(zipBytes))
+            .setRootFileName(rootFileName)
+            .setTaskId(taskId)
+            .build()
+            .writeTo(byteOutput)
+
+    return ByteString.copyFrom(byteOutput.toByteArray())
+}
+
+fun getResultData(taskId: String, statusCode: Int, resultBytes: ByteArray): ByteString {
+    val byteOutput = ByteArrayOutputStream()
+    CompilerFleet.CompilerFleetResult.newBuilder()
+            .setTaskId(taskId)
+            .setStatusCode(statusCode)
+            .setResultBytes(ByteString.copyFrom(resultBytes))
+            .build()
+            .writeTo(byteOutput)
+
+    return ByteString.copyFrom(byteOutput.toByteArray())
+}
+
 class Publisher(private val topicName: String) {
     private val PROJECT_ID = ServiceOptions.getDefaultProjectId()
 
-    fun publish(zipBytes: ByteArray, rootFileName: String, taskId: String) {
+    fun publish(data: ByteString) {
         val topicId = this.topicName
         val serviceTopicName = TopicName.of(this.PROJECT_ID, topicId)
         var publisher: Publisher? = null
 
         try {
             publisher = Publisher.newBuilder(serviceTopicName).build()
-            val byteOutput = ByteArrayOutputStream()
-            CompilerFleet.CompilerFleetRequest.newBuilder()
-                    .setZipBytes(ByteString.copyFrom(zipBytes))
-                    .setRootFileName(rootFileName)
-                    .setTaskId(taskId)
-                    .build()
-                    .writeTo(byteOutput)
 
-            val data = ByteString.copyFrom(byteOutput.toByteArray())
             val pubsubMessage = PubsubMessage.newBuilder()
                     .setData(data)
                     .build()
@@ -61,7 +77,6 @@ class Publisher(private val topicName: String) {
 
                 override fun onFailure(throwable: Throwable) {
                     println(throwable)
-                    println("Error publishing taskID : $taskId")
                 }
 
                 override fun onSuccess(messageId: String) {
