@@ -69,7 +69,7 @@ internal class TaskReceiver(private val tasksDir: Path,
             val filename = entry.name
             val newFile = destination.resolve(filename).toFile()
 
-            if (!File(newFile.parent).mkdirs()) {
+            if (!newFile.parentFile.mkdirs()) {
                 throw IOException("unable to create dirs while unzipping")
             }
 
