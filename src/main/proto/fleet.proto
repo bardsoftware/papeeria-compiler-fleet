@@ -23,3 +23,9 @@ message CompilerFleetRequest {
     string rootFileName = 2;
     string taskId = 3;
 }
+
+message CompilerFleetResult {
+    string taskId = 1;
+    int32 statusCode = 2;
+    bytes resultBytes = 3;
+}
