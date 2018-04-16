@@ -22,6 +22,7 @@ import com.google.cloud.pubsub.v1.Publisher
 import com.google.protobuf.ByteString
 import com.google.pubsub.v1.PubsubMessage
 import com.google.pubsub.v1.TopicName
+import java.io.ByteArrayOutputStream
 
 fun createMessage(message: String): PubsubMessage {
     val data = ByteString.copyFromUtf8(message)
@@ -34,14 +35,25 @@ fun createMessage(message: String): PubsubMessage {
 class Publisher(private val topicName: String) {
     private val PROJECT_ID = ServiceOptions.getDefaultProjectId()
 
-    fun publish(message: String) {
+    fun publish(zipBytes: ByteArray, rootFileName: String, taskId: String) {
         val topicId = this.topicName
         val serviceTopicName = TopicName.of(this.PROJECT_ID, topicId)
         var publisher: Publisher? = null
 
         try {
             publisher = Publisher.newBuilder(serviceTopicName).build()
-            val pubsubMessage = createMessage(message)
+            val byteOutput = ByteArrayOutputStream()
+            CompilerFleet.CompilerFleetRequest.newBuilder()
+                    .setZipBytes(ByteString.copyFrom(zipBytes))
+                    .setRootFileName(rootFileName)
+                    .setTaskId(taskId)
+                    .build()
+                    .writeTo(byteOutput)
+
+            val data = ByteString.copyFrom(byteOutput.toByteArray())
+            val pubsubMessage = PubsubMessage.newBuilder()
+                    .setData(data)
+                    .build()
 
             val future = publisher.publish(pubsubMessage)
 
@@ -49,7 +61,7 @@ class Publisher(private val topicName: String) {
 
                 override fun onFailure(throwable: Throwable) {
                     println(throwable)
-                    println("Error publishing message : $message")
+                    println("Error publishing taskID : $taskId")
                 }
 
                 override fun onSuccess(messageId: String) {

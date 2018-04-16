@@ -19,20 +19,38 @@ import com.google.cloud.ServiceOptions
 import com.google.cloud.pubsub.v1.AckReplyConsumer
 import com.google.cloud.pubsub.v1.MessageReceiver
 import com.google.cloud.pubsub.v1.Subscriber
+import com.google.common.io.ByteStreams
 import com.google.pubsub.v1.PubsubMessage
 import com.google.pubsub.v1.SubscriptionName
 import com.xenomachina.argparser.ArgParser
+import org.apache.commons.io.FileUtils.readFileToString
+import java.io.ByteArrayInputStream
+import java.io.File
+import java.io.FileOutputStream
+import java.io.IOException
+import java.nio.charset.Charset
+import java.nio.file.Path
+import java.nio.file.Paths
 import java.util.concurrent.CompletableFuture
+import java.util.zip.ZipEntry
+import java.util.zip.ZipInputStream
 
 class SubscriberArgs(parser: ArgParser) {
     val subscriberName by parser.storing(
             "--sub",
             help = "subscription topic name")
+
+    val tasksDir by parser.storing(
+            "--tasks-dir",
+            help = "root of tasks content"
+    )
 }
 
 private val PROJECT_ID = ServiceOptions.getDefaultProjectId()
 
-internal class MessageReceiverExample(private val callback: (message: String, md5sum: String) -> Unit) : MessageReceiver {
+internal class TaskReceiver(private val tasksDir: Path,
+                            private val callback: (message: String, md5sum: String) -> Unit
+) : MessageReceiver {
     private val dockerProcessor = DockerProcessor()
 
     override fun receiveMessage(message: PubsubMessage, consumer: AckReplyConsumer) {
@@ -41,16 +59,63 @@ internal class MessageReceiverExample(private val callback: (message: String, md
     }
 
     fun processMessage(message: PubsubMessage) {
-        val messageContent = message.data.toStringUtf8()
-        val md5sum = this.dockerProcessor.getMd5Sum(messageContent)
+        val request = CompilerFleet.CompilerFleetRequest.parseFrom(message.data)
 
-        this.callback(messageContent, md5sum)
+        val taskId = request.taskId
+        val destination = this.tasksDir.resolve(taskId).resolve("files")
+        val zipStream = ZipInputStream(ByteArrayInputStream(request.zipBytes.toByteArray()))
+        var entry: ZipEntry? = zipStream.nextEntry
+
+        while (entry != null) {
+            val filename = entry.name
+            val newFile = destination.resolve(filename).toFile()
+
+            if (!newFile.parentFile.mkdirs()) {
+                val dirName = newFile.parentFile.name
+                throw IOException("In task(id = $taskId): unable to create $dirName directory while unzipping")
+            }
+
+            FileOutputStream(newFile).use {
+                ByteStreams.copy(zipStream, it)
+            }
+
+            entry = zipStream.nextEntry
+        }
+
+        val rootFileName = request.rootFileName
+        val rootFile = destination.resolve(rootFileName).toFile()
+        if (!rootFile.exists()) {
+            throw IOException("In task(id = $taskId): path to root file doesn't exists")
+        }
+
+        this.callback("md5 sum of root file", dockerProcessor.getMd5Sum(rootFile))
     }
 }
 
-class SubscribeManager(subscriptionId: String, callback: (message: String, md5sum: String) -> Unit) {
+class SubscribeManager(tasksDir: String,
+                       subscriptionId: String,
+                       callback: (message: String, md5sum: String) -> Unit) {
     private val subscriptionName = SubscriptionName.of(PROJECT_ID, subscriptionId)
-    private val receiver = MessageReceiverExample(callback)
+    private val receiver: TaskReceiver
+
+    init {
+        val directory = Paths.get(tasksDir)
+        val directoryName = directory.toFile().name
+
+        if (!directory.toFile().isDirectory) {
+            throw IOException("tasksDir directory(name is $directoryName) actually isn't a directory")
+        }
+
+        if (!directory.toFile().exists()) {
+            throw IOException("tasksDir directory(name is $directoryName) doesn't exists")
+        }
+
+        if (!directory.toFile().canWrite()) {
+            throw IOException("tasksDir directory(name is $directoryName) isn't writable")
+        }
+
+        this.receiver = TaskReceiver(directory, callback)
+    }
 
     fun subscribe() {
         val subscriber = Subscriber.newBuilder(this.subscriptionName, this.receiver).build()
@@ -67,19 +132,20 @@ class SubscribeManager(subscriptionId: String, callback: (message: String, md5su
         }
     }
 
-    fun pushMessage(message: String) {
-        this.receiver.processMessage(createMessage(message))
+    fun pushMessage(message: PubsubMessage) {
+        this.receiver.processMessage(message)
     }
 }
 
 fun main(args: Array<String>) {
     val parsedArgs = ArgParser(args).parseInto(::SubscriberArgs)
     val subscriptionId = parsedArgs.subscriberName
+    val tasksDir = parsedArgs.tasksDir
 
     val printerCallback = { message: String, md5sum: String? ->
         println("Data: $message")
         println("md5 sum: $md5sum")
     }
 
-    SubscribeManager(subscriptionId, printerCallback).subscribe()
+    SubscribeManager(tasksDir, subscriptionId, printerCallback).subscribe()
 }

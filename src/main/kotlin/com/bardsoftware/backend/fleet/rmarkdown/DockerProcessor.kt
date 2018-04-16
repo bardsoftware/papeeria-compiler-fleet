@@ -20,15 +20,21 @@ import com.spotify.docker.client.DockerClient
 import com.spotify.docker.client.DockerClient.LogsParam.stderr
 import com.spotify.docker.client.DockerClient.LogsParam.stdout
 import com.spotify.docker.client.messages.ContainerConfig
+import org.apache.commons.io.FileUtils
+import java.io.File
+import java.nio.charset.Charset
+import java.nio.file.Path
 
 class DockerProcessor {
     private val docker: DockerClient = DefaultDockerClient.fromEnv().build()
 
-    fun getMd5Sum(message: String): String {
+    fun getMd5Sum(file: File): String {
         var containerId: String? = null
 
         try {
-            val quotedMessage = "\"$message\""
+            // TODO: replace this with shell command
+            val content = FileUtils.readFileToString(file, Charset.defaultCharset())
+            val quotedMessage = "\"$content\""
 
             val containerConfig = ContainerConfig.builder()
                     .image("busybox")

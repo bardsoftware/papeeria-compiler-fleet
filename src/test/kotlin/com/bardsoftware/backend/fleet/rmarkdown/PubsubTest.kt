@@ -15,40 +15,90 @@
  */
 package com.bardsoftware.backend.fleet.rmarkdown
 
+import com.google.protobuf.ByteString
+import com.google.pubsub.v1.PubsubMessage
+import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Before
 import org.junit.Test
+import java.io.ByteArrayOutputStream
+import java.io.File
+import java.io.IOException
+import java.nio.file.Files
+import java.util.zip.ZipEntry
+import java.util.zip.ZipOutputStream
 
 class PubsubTest {
-    @Test
-    fun testSimpleMessage() {
-        val message = "hello"
-        val sum = "b1946ac92492d2347c6235b4d2611184  -\n"
+    private val tasksDir = "tasks"
+    private var rootFileName = "mytext.txt"
 
-        val testCallback = { acceptedMessage: String, acceptedMd5sum: String ->
-            assertEquals(message, acceptedMessage)
-            assertEquals(sum, acceptedMd5sum)
-        }
-
-        val manager = SubscribeManager("", testCallback)
-        manager.pushMessage(message)
+    @Before
+    fun createDir() {
+        File(this.tasksDir).mkdir()
     }
 
     @Test
-    fun testMultipleMessages() {
-        val message = "hello"
-        val sum = "b1946ac92492d2347c6235b4d2611184  -\n"
+    fun processFileUnzipTest() {
+        val message = "test message"
+        val byteOutput = ByteArrayOutputStream()
+        val output = ZipOutputStream(byteOutput)
+        val entry = ZipEntry("mytext.txt")
+        output.putNextEntry(entry)
+        output.write(message.toByteArray())
 
-        var messagesCount = 0
-        val testCallback = { acceptedMessage: String, acceptedMd5sum: String ->
-            messagesCount++
-            assertEquals(message, acceptedMessage)
-            assertEquals(sum, acceptedMd5sum)
+        output.closeEntry()
+        output.close()
+
+        val zipBytes = ByteString.copyFrom(byteOutput.toByteArray())
+        val taskId = "testId"
+        val request = CompilerFleet.CompilerFleetRequest.newBuilder()
+
+        val byteOutputObj = ByteArrayOutputStream()
+        request.setZipBytes(zipBytes)
+                .setRootFileName(rootFileName)
+                .setTaskId(taskId)
+                .build().writeTo(byteOutputObj)
+
+        val data = ByteString.copyFrom(byteOutputObj.toByteArray())
+        val pubsubMessage = PubsubMessage.newBuilder()
+                .setData(data)
+                .build()
+
+        val mockCallback = { acceptedMessage: String, acceptedMd5sum: String ->
+            assertEquals("f11a425906289abf8cce1733622834c8  -\n", acceptedMd5sum)
         }
 
-        val manager = SubscribeManager("", testCallback)
-        manager.pushMessage(message)
-        manager.pushMessage(message)
-        manager.pushMessage(message)
-        assertEquals(3, messagesCount)
+        val manager = SubscribeManager(tasksDir, "", mockCallback)
+        manager.pushMessage(pubsubMessage)
+    }
+
+    @Test(expected = IOException::class)
+    fun fileIsNotDirTest() {
+        deleteDir()
+        File(this.tasksDir).createNewFile()
+        processFileUnzipTest()
+    }
+
+    @Test(expected = IOException::class)
+    fun dirNotExistTest() {
+        deleteDir()
+        processFileUnzipTest()
+    }
+
+    @Test(expected = IOException::class)
+    fun dirNotWritableTest() {
+        File(this.tasksDir).setWritable(false)
+        processFileUnzipTest()
+    }
+
+    @Test(expected = IOException::class)
+    fun rootFileNameNotExist() {
+        this.rootFileName = "another name"
+        processFileUnzipTest()
+    }
+
+    @After
+    fun deleteDir() {
+        File(this.tasksDir).deleteRecursively()
     }
 }
