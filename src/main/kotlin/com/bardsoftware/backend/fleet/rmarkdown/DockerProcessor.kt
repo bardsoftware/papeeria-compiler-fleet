@@ -32,6 +32,7 @@ class DockerProcessor {
         var containerId: String? = null
 
         try {
+            // TODO: replace this with shell command
             val content = FileUtils.readFileToString(file, Charset.defaultCharset())
             val quotedMessage = "\"$content\""
 
