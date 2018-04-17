@@ -43,7 +43,7 @@ sourceSets {
             srcDir 'src/main/proto'
         }
         java {
-            srcDirs 'src/main/java', 'generated/source/proto/main/java'
+            srcDirs 'src/main/java', 'src/generated/main/java'
         }
     }
 }
@@ -51,6 +51,7 @@ sourceSets {
 protobuf {
     protoc {
         artifact = 'com.google.protobuf:protoc:3.5.1'
+        generatedFilesBaseDir = "$projectDir/src/generated"
     }
 }
 
