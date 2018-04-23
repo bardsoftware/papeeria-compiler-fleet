@@ -32,6 +32,7 @@ import java.util.zip.ZipOutputStream
 
 class PubsubTest {
     private val tasksDir = "tasks"
+    private val resultTopic = "rmarkdown-results"
     private var rootFileName = "mytext.txt"
 
     @Before
@@ -70,7 +71,7 @@ class PubsubTest {
             assertEquals("f11a425906289abf8cce1733622834c8  -\n", acceptedMd5sum)
         }
 
-        val taskReceiver = TaskReceiver(tasksDir, mockCallback)
+        val taskReceiver = TaskReceiver(tasksDir, resultTopic, mockCallback)
         val manager = SubscribeManager("", taskReceiver)
         manager.pushMessage(pubsubMessage)
     }

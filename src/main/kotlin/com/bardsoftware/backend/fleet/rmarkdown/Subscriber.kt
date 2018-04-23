@@ -37,6 +37,11 @@ class SubscriberArgs(parser: ArgParser) {
             "--sub",
             help = "subscription topic name")
 
+    val resultTopic by parser.storing(
+            "--res",
+            help = "result topic name"
+    )
+
     val tasksDir by parser.storing(
             "--tasks-dir",
             help = "root of tasks content"
@@ -54,11 +59,11 @@ abstract class CompilerFleetMessageReceiver : MessageReceiver {
     abstract fun processMessage(message: PubsubMessage)
 }
 
-internal class TaskReceiver(val tasksDirectory: String,
+internal class TaskReceiver(tasksDirectory: String,
+                            resultTopic: String,
                             private val callback: (message: String, md5sum: String) -> Unit
 ) : CompilerFleetMessageReceiver() {
     private val dockerProcessor = DockerProcessor()
-    private val resultTopic = "rmarkdown-results"
     private val resultPublisher = Publisher(resultTopic)
     private val tasksDir: Path
 
@@ -156,12 +161,13 @@ fun main(args: Array<String>) {
     val parsedArgs = ArgParser(args).parseInto(::SubscriberArgs)
     val subscriptionId = parsedArgs.subscriberName
     val tasksDir = parsedArgs.tasksDir
+    val resultTopic = parsedArgs.resultTopic
 
     val printerCallback = { message: String, md5sum: String? ->
         println("Data: $message")
         println("md5 sum: $md5sum")
     }
 
-    val taskReceiver = TaskReceiver(tasksDir, printerCallback)
+    val taskReceiver = TaskReceiver(tasksDir, resultTopic, printerCallback)
     SubscribeManager(subscriptionId, taskReceiver).subscribe()
 }
