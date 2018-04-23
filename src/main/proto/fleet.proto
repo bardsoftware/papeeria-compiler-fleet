@@ -19,9 +19,9 @@ option java_package = "com.bardsoftware.backend.fleet.rmarkdown";
 option java_outer_classname = "CompilerFleet";
 
 message CompilerFleetRequest {
-    bytes zipBytes = 1;
-    string rootFileName = 2;
-    string taskId = 3;
+    string taskId = 1;
+    bytes zipBytes = 2;
+    string rootFileName = 3;
 }
 
 message CompilerFleetResult {
