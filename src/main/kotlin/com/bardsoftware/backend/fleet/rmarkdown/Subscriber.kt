@@ -124,15 +124,6 @@ internal class TaskReceiver(tasksDirectory: String,
     }
 }
 
-internal class ResultReceiver() : CompilerFleetMessageReceiver() {
-    override fun processMessage(message: PubsubMessage) {
-        val result = CompilerFleet.CompilerFleetResult.parseFrom(message.data)
-
-        println(result.taskId)
-        println(String(result.resultBytes.toByteArray()))
-    }
-}
-
 class SubscribeManager(subscriptionId: String,
                        private val receiver: CompilerFleetMessageReceiver) {
     private val subscriptionName = SubscriptionName.of(PROJECT_ID, subscriptionId)
