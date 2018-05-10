@@ -20,32 +20,18 @@ import com.google.api.core.ApiFutures
 import com.google.cloud.ServiceOptions
 import com.google.cloud.pubsub.v1.Publisher
 import com.google.protobuf.ByteString
+import com.google.protobuf.MessageLite
 import com.google.pubsub.v1.PubsubMessage
 import com.google.pubsub.v1.TopicName
 import java.io.ByteArrayOutputStream
 
-fun getRequestData(zipBytes: ByteArray, rootFileName: String, taskId: String): ByteString {
-    val byteOutput = ByteArrayOutputStream()
-    CompilerFleet.CompilerFleetRequest.newBuilder()
-            .setZipBytes(ByteString.copyFrom(zipBytes))
-            .setRootFileName(rootFileName)
-            .setTaskId(taskId)
-            .build()
-            .writeTo(byteOutput)
-
-    return ByteString.copyFrom(byteOutput.toByteArray())
-}
-
 fun getResultData(taskId: String, statusCode: Int, resultBytes: ByteArray): ByteString {
-    val byteOutput = ByteArrayOutputStream()
-    CompilerFleet.CompilerFleetResult.newBuilder()
+    return CompilerFleet.CompilerFleetResult.newBuilder()
             .setTaskId(taskId)
             .setStatusCode(statusCode)
             .setResultBytes(ByteString.copyFrom(resultBytes))
             .build()
-            .writeTo(byteOutput)
-
-    return ByteString.copyFrom(byteOutput.toByteArray())
+            .toByteString()
 }
 
 class Publisher(private val topicName: String) {
