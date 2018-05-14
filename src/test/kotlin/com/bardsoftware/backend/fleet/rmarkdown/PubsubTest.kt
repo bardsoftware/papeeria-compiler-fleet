@@ -17,7 +17,6 @@ package com.bardsoftware.backend.fleet.rmarkdown
 
 import com.google.protobuf.ByteString
 import com.google.pubsub.v1.PubsubMessage
-import org.apache.commons.io.FileUtils
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Before
@@ -25,8 +24,6 @@ import org.junit.Test
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.IOException
-import java.nio.charset.Charset
-import java.nio.file.Files
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
 
