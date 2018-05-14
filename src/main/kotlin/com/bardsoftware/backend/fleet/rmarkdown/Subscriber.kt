@@ -38,7 +38,7 @@ class SubscriberArgs(parser: ArgParser) {
             help = "subscription topic name")
 
     val resultTopic by parser.storing(
-            "--res",
+            "-r", "--result-topic",
             help = "result topic name"
     )
 
@@ -68,22 +68,23 @@ internal class TaskReceiver(tasksDirectory: String,
     private val tasksDir: Path
 
     init {
-        val directory = Paths.get(tasksDirectory)
-        val directoryName = directory.toFile().name
+        val directoryPath = Paths.get(tasksDirectory)
+        val directoryFile = directoryPath.toFile()
+        val directoryName = directoryFile.name
 
-        if (!directory.toFile().isDirectory) {
-            throw IOException("tasksDir directory(name is $directoryName) actually isn't a directory")
-        }
-
-        if (!directory.toFile().exists()) {
+        if (!directoryFile.exists()) {
             throw IOException("tasksDir directory(name is $directoryName) doesn't exists")
         }
 
-        if (!directory.toFile().canWrite()) {
+        if (!directoryFile.isDirectory) {
+            throw IOException("tasksDir directory(name is $directoryName) actually isn't a directory")
+        }
+
+        if (!directoryFile.canWrite()) {
             throw IOException("tasksDir directory(name is $directoryName) isn't writable")
         }
 
-        this.tasksDir = directory
+        this.tasksDir = directoryPath
     }
 
     override fun processMessage(message: PubsubMessage) {
