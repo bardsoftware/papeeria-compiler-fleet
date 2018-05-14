@@ -33,36 +33,32 @@ fun getResultData(taskId: String, statusCode: Int, resultBytes: ByteArray): Byte
 }
 
 class Publisher(private val topicName: String) {
-    private val publishManager: Publisher
+    private val pubsubPublisher: Publisher
 
     init {
         val project_id = ServiceOptions.getDefaultProjectId()
         val topicId = this.topicName
         val serviceTopicName = TopicName.of(project_id, topicId)
 
-        this.publishManager = Publisher.newBuilder(serviceTopicName).build()
+        this.pubsubPublisher = Publisher.newBuilder(serviceTopicName).build()
     }
 
     fun publish(data: ByteString) {
-        try {
-            val pubsubMessage = PubsubMessage.newBuilder()
-                    .setData(data)
-                    .build()
+        val pubsubMessage = PubsubMessage.newBuilder()
+                .setData(data)
+                .build()
 
-            val future = publishManager.publish(pubsubMessage)
+        val future = pubsubPublisher.publish(pubsubMessage)
 
-            ApiFutures.addCallback(future, object : ApiFutureCallback<String> {
+        ApiFutures.addCallback(future, object : ApiFutureCallback<String> {
 
-                override fun onFailure(throwable: Throwable) {
-                    println(throwable)
-                }
+            override fun onFailure(throwable: Throwable) {
+                println(throwable)
+            }
 
-                override fun onSuccess(messageId: String) {
-                    println("successful published $messageId")
-                }
-            })
-        } finally {
-            publishManager.shutdown()
-        }
+            override fun onSuccess(messageId: String) {
+                println("successful published $messageId")
+            }
+        })
     }
 }
