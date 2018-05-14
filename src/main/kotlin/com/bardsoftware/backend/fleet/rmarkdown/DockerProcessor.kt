@@ -23,7 +23,6 @@ import com.spotify.docker.client.messages.ContainerConfig
 import org.apache.commons.io.FileUtils
 import java.io.File
 import java.nio.charset.Charset
-import java.nio.file.Path
 
 class DockerProcessor {
     private val docker: DockerClient = DefaultDockerClient.fromEnv().build()

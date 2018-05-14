@@ -22,54 +22,43 @@ import com.google.cloud.pubsub.v1.Publisher
 import com.google.protobuf.ByteString
 import com.google.pubsub.v1.PubsubMessage
 import com.google.pubsub.v1.TopicName
-import java.io.ByteArrayOutputStream
 
-fun createMessage(message: String): PubsubMessage {
-    val data = ByteString.copyFromUtf8(message)
-
-    return PubsubMessage.newBuilder()
-            .setData(data)
+fun getResultData(taskId: String, statusCode: Int, resultBytes: ByteArray): ByteString {
+    return CompilerFleet.CompilerFleetResult.newBuilder()
+            .setTaskId(taskId)
+            .setStatusCode(statusCode)
+            .setResultBytes(ByteString.copyFrom(resultBytes))
             .build()
+            .toByteString()
 }
 
 class Publisher(private val topicName: String) {
-    private val PROJECT_ID = ServiceOptions.getDefaultProjectId()
+    private val pubsubPublisher: Publisher
 
-    fun publish(zipBytes: ByteArray, rootFileName: String, taskId: String) {
+    init {
+        val project_id = ServiceOptions.getDefaultProjectId()
         val topicId = this.topicName
-        val serviceTopicName = TopicName.of(this.PROJECT_ID, topicId)
-        var publisher: Publisher? = null
+        val serviceTopicName = TopicName.of(project_id, topicId)
 
-        try {
-            publisher = Publisher.newBuilder(serviceTopicName).build()
-            val byteOutput = ByteArrayOutputStream()
-            CompilerFleet.CompilerFleetRequest.newBuilder()
-                    .setZipBytes(ByteString.copyFrom(zipBytes))
-                    .setRootFileName(rootFileName)
-                    .setTaskId(taskId)
-                    .build()
-                    .writeTo(byteOutput)
+        this.pubsubPublisher = Publisher.newBuilder(serviceTopicName).build()
+    }
 
-            val data = ByteString.copyFrom(byteOutput.toByteArray())
-            val pubsubMessage = PubsubMessage.newBuilder()
-                    .setData(data)
-                    .build()
+    fun publish(data: ByteString) {
+        val pubsubMessage = PubsubMessage.newBuilder()
+                .setData(data)
+                .build()
 
-            val future = publisher.publish(pubsubMessage)
+        val future = pubsubPublisher.publish(pubsubMessage)
 
-            ApiFutures.addCallback(future, object : ApiFutureCallback<String> {
+        ApiFutures.addCallback(future, object : ApiFutureCallback<String> {
 
-                override fun onFailure(throwable: Throwable) {
-                    println(throwable)
-                    println("Error publishing taskID : $taskId")
-                }
+            override fun onFailure(throwable: Throwable) {
+                println(throwable)
+            }
 
-                override fun onSuccess(messageId: String) {
-                    println("successful published $messageId")
-                }
-            })
-        } finally {
-            publisher?.shutdown()
-        }
+            override fun onSuccess(messageId: String) {
+                println("successful published $messageId")
+            }
+        })
     }
 }

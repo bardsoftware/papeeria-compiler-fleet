@@ -23,12 +23,9 @@ import com.google.common.io.ByteStreams
 import com.google.pubsub.v1.PubsubMessage
 import com.google.pubsub.v1.SubscriptionName
 import com.xenomachina.argparser.ArgParser
-import org.apache.commons.io.FileUtils.readFileToString
 import java.io.ByteArrayInputStream
-import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
-import java.nio.charset.Charset
 import java.nio.file.Path
 import java.nio.file.Paths
 import java.util.concurrent.CompletableFuture
@@ -40,6 +37,11 @@ class SubscriberArgs(parser: ArgParser) {
             "--sub",
             help = "subscription topic name")
 
+    val resultTopic by parser.storing(
+            "-r", "--result-topic",
+            help = "result topic name"
+    )
+
     val tasksDir by parser.storing(
             "--tasks-dir",
             help = "root of tasks content"
@@ -48,17 +50,44 @@ class SubscriberArgs(parser: ArgParser) {
 
 private val PROJECT_ID = ServiceOptions.getDefaultProjectId()
 
-internal class TaskReceiver(private val tasksDir: Path,
-                            private val callback: (message: String, md5sum: String) -> Unit
-) : MessageReceiver {
-    private val dockerProcessor = DockerProcessor()
-
+abstract class CompilerFleetMessageReceiver : MessageReceiver {
     override fun receiveMessage(message: PubsubMessage, consumer: AckReplyConsumer) {
         processMessage(message)
         consumer.ack()
     }
 
-    fun processMessage(message: PubsubMessage) {
+    abstract fun processMessage(message: PubsubMessage)
+}
+
+internal class TaskReceiver(tasksDirectory: String,
+                            resultTopic: String,
+                            private val callback: (message: String, md5sum: String) -> Unit
+) : CompilerFleetMessageReceiver() {
+    private val dockerProcessor = DockerProcessor()
+    private val resultPublisher = Publisher(resultTopic)
+    private val tasksDir: Path
+
+    init {
+        val directoryPath = Paths.get(tasksDirectory)
+        val directoryFile = directoryPath.toFile()
+        val directoryName = directoryFile.name
+
+        if (!directoryFile.exists()) {
+            throw IOException("tasksDir directory(name is $directoryName) doesn't exists")
+        }
+
+        if (!directoryFile.isDirectory) {
+            throw IOException("tasksDir directory(name is $directoryName) actually isn't a directory")
+        }
+
+        if (!directoryFile.canWrite()) {
+            throw IOException("tasksDir directory(name is $directoryName) isn't writable")
+        }
+
+        this.tasksDir = directoryPath
+    }
+
+    override fun processMessage(message: PubsubMessage) {
         val request = CompilerFleet.CompilerFleetRequest.parseFrom(message.data)
 
         val taskId = request.taskId
@@ -88,34 +117,17 @@ internal class TaskReceiver(private val tasksDir: Path,
             throw IOException("In task(id = $taskId): path to root file doesn't exists")
         }
 
-        this.callback("md5 sum of root file", dockerProcessor.getMd5Sum(rootFile))
+        val md5sum = dockerProcessor.getMd5Sum(rootFile)
+        this.callback("md5 sum of root file", md5sum)
+
+        val data = getResultData(taskId, 0, md5sum.toByteArray())
+        resultPublisher.publish(data)
     }
 }
 
-class SubscribeManager(tasksDir: String,
-                       subscriptionId: String,
-                       callback: (message: String, md5sum: String) -> Unit) {
+class SubscribeManager(subscriptionId: String,
+                       private val receiver: CompilerFleetMessageReceiver) {
     private val subscriptionName = SubscriptionName.of(PROJECT_ID, subscriptionId)
-    private val receiver: TaskReceiver
-
-    init {
-        val directory = Paths.get(tasksDir)
-        val directoryName = directory.toFile().name
-
-        if (!directory.toFile().isDirectory) {
-            throw IOException("tasksDir directory(name is $directoryName) actually isn't a directory")
-        }
-
-        if (!directory.toFile().exists()) {
-            throw IOException("tasksDir directory(name is $directoryName) doesn't exists")
-        }
-
-        if (!directory.toFile().canWrite()) {
-            throw IOException("tasksDir directory(name is $directoryName) isn't writable")
-        }
-
-        this.receiver = TaskReceiver(directory, callback)
-    }
 
     fun subscribe() {
         val subscriber = Subscriber.newBuilder(this.subscriptionName, this.receiver).build()
@@ -141,11 +153,13 @@ fun main(args: Array<String>) {
     val parsedArgs = ArgParser(args).parseInto(::SubscriberArgs)
     val subscriptionId = parsedArgs.subscriberName
     val tasksDir = parsedArgs.tasksDir
+    val resultTopic = parsedArgs.resultTopic
 
     val printerCallback = { message: String, md5sum: String? ->
         println("Data: $message")
         println("md5 sum: $md5sum")
     }
 
-    SubscribeManager(tasksDir, subscriptionId, printerCallback).subscribe()
+    val taskReceiver = TaskReceiver(tasksDir, resultTopic, printerCallback)
+    SubscribeManager(subscriptionId, taskReceiver).subscribe()
 }
