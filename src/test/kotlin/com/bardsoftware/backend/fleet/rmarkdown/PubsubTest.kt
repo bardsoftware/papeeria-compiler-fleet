@@ -16,7 +16,6 @@
 package com.bardsoftware.backend.fleet.rmarkdown
 
 import com.google.protobuf.ByteString
-import com.google.pubsub.v1.PubsubMessage
 import org.apache.commons.io.FileUtils
 import org.junit.After
 import org.junit.Before
@@ -70,11 +69,6 @@ class PubsubTest {
                 .setTaskId(taskId)
                 .build()
                 .writeTo(byteOutputObj)
-
-        val data = ByteString.copyFrom(byteOutputObj.toByteArray())
-        val pubsubMessage = PubsubMessage.newBuilder()
-                .setData(data)
-                .build()
 
         val mockCallback = { _: String, acceptedPdf: String ->
             assertEquals("rmarkdown-cv.pdf", acceptedPdf)

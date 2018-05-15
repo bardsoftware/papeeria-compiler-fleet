@@ -67,7 +67,7 @@ internal class TaskReceiver(tasksDirectory: String,
                             private val callback: (message: String, filename: String) -> Unit
 ) : CompilerFleetMessageReceiver() {
     private val dockerProcessor = DockerProcessor()
-    private var resultPublisher: Publisher? = null
+    private var resultPublisher = Publisher(resultTopic)
     private val tasksDir: Path
 
     init {
@@ -116,25 +116,20 @@ internal class TaskReceiver(tasksDirectory: String,
             throw IOException("In task(id = $taskId): path to root file doesn't exists")
         }
 
-        val compiledPdf = dockerProcessor.compileRmdToPdf(rootFile)
-        this.callback("Compiled pdf name: ", compiledPdf.name)
-
-        return compiledPdf
+        return rootFile
     }
 
     override fun processMessage(message: PubsubMessage) {
-        if (this.resultPublisher == null) {
-            this.resultPublisher = Publisher(resultTopic)
-        }
-
         val request = CompilerFleet.CompilerFleetRequest.parseFrom(message.data)
         val taskId = request.taskId
         val rootFileName = request.rootFileName
         val zipBytes = request.zipBytes
-        val compiledPdf = processCompileTask(taskId, rootFileName, zipBytes)
+        val rootFile = processCompileTask(taskId, rootFileName, zipBytes)
+        val compiledPdf = dockerProcessor.compileRmdToPdf(rootFile)
+        this.callback("Compiled pdf name: ", compiledPdf.name)
 
         val data = getResultData(taskId, 0, FileUtils.readFileToByteArray(compiledPdf))
-        resultPublisher!!.publish(data)
+        resultPublisher.publish(data)
     }
 }
 
