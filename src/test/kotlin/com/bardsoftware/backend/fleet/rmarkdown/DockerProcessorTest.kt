@@ -15,21 +15,18 @@
  */
 package com.bardsoftware.backend.fleet.rmarkdown
 
-import org.apache.commons.io.FileUtils
-import org.junit.Assert.assertEquals
+import junit.framework.Assert.assertEquals
 import org.junit.Test
-import java.nio.charset.Charset
+import java.io.File
 
 class DockerTest {
     private val dockerProcessor = DockerProcessor()
 
     @Test
-    fun testMessageSum() {
-        val file = createTempFile("test", ".txt")
-
-        FileUtils.writeStringToFile(file, "hello message", Charset.defaultCharset())
-
-        val actualSum = dockerProcessor.getMd5Sum(file)
-        assertEquals("387d1f75a179d782a473cf21fb893e33  -\n", actualSum)
+    fun testCompile() {
+        val rmarkdown = DockerTest::class.java.getResource("/rmarkdown-cv.Rmd")
+        val compiledPdf = dockerProcessor.compileRmdToPdf(File(rmarkdown.file))
+        assertEquals(250790436864, compiledPdf.totalSpace)
+        compiledPdf.deleteOnExit()
     }
 }
