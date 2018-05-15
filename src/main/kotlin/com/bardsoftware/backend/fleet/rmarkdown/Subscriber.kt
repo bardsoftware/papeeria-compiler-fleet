@@ -23,6 +23,7 @@ import com.google.common.io.ByteStreams
 import com.google.pubsub.v1.PubsubMessage
 import com.google.pubsub.v1.SubscriptionName
 import com.xenomachina.argparser.ArgParser
+import org.apache.commons.io.FileUtils
 import java.io.ByteArrayInputStream
 import java.io.FileOutputStream
 import java.io.IOException
@@ -61,7 +62,7 @@ abstract class CompilerFleetMessageReceiver : MessageReceiver {
 
 internal class TaskReceiver(tasksDirectory: String,
                             resultTopic: String,
-                            private val callback: (message: String, md5sum: String) -> Unit
+                            private val callback: (message: String, filename: String) -> Unit
 ) : CompilerFleetMessageReceiver() {
     private val dockerProcessor = DockerProcessor()
     private val resultPublisher = Publisher(resultTopic)
@@ -117,10 +118,10 @@ internal class TaskReceiver(tasksDirectory: String,
             throw IOException("In task(id = $taskId): path to root file doesn't exists")
         }
 
-        val md5sum = dockerProcessor.getMd5Sum(rootFile)
-        this.callback("md5 sum of root file", md5sum)
+        val compiledPdf = dockerProcessor.compileRmdToPdf(rootFile)
+        this.callback("Compiled pdf name: ", compiledPdf.name)
 
-        val data = getResultData(taskId, 0, md5sum.toByteArray())
+        val data = getResultData(taskId, 0, FileUtils.readFileToByteArray(compiledPdf))
         resultPublisher.publish(data)
     }
 }
@@ -155,9 +156,8 @@ fun main(args: Array<String>) {
     val tasksDir = parsedArgs.tasksDir
     val resultTopic = parsedArgs.resultTopic
 
-    val printerCallback = { message: String, md5sum: String? ->
-        println("Data: $message")
-        println("md5 sum: $md5sum")
+    val printerCallback = { message: String, filename: String? ->
+        println("$message: $filename")
     }
 
     val taskReceiver = TaskReceiver(tasksDir, resultTopic, printerCallback)
