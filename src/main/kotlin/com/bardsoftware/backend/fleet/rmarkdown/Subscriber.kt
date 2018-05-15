@@ -63,10 +63,10 @@ abstract class CompilerFleetMessageReceiver : MessageReceiver {
 }
 
 internal class TaskReceiver(tasksDirectory: String,
-                            private val resultTopic: String,
+                            resultTopic: String,
                             private val callback: (message: String, filename: String) -> Unit
 ) : CompilerFleetMessageReceiver() {
-    private val dockerProcessor = DockerProcessor()
+    private val dockerProcessor = DockerProcessor(getDefaultDockerClient())
     private var resultPublisher = Publisher(resultTopic)
     private val tasksDir: Path
 

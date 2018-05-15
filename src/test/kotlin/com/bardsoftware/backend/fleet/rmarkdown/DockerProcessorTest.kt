@@ -30,21 +30,13 @@ import org.mockito.runners.MockitoJUnitRunner
 import java.io.File
 
 
-@RunWith(MockitoJUnitRunner::class)
 class DockerTest {
-    @Mock
-    lateinit var docker: DockerClient
-
-    @InjectMocks
-    lateinit var dockerProcessor: DockerProcessor
-
-    @Before
-    fun setUp() {
-        MockitoAnnotations.initMocks(this)
-    }
 
     @Test
     fun testDocker() {
+        val docker = mock(DockerClient::class.java)
+        val dockerProcessor = DockerProcessor(docker)
+
         val file = mock(File::class.java)
         `when`(file.name).thenReturn("name")
         `when`(file.path).thenReturn("path")
