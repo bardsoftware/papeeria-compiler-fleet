@@ -41,10 +41,7 @@ class PubsubTest {
 
     @Test
     fun processFileUnzipTest() {
-        val rootUrl = DockerTest::class.java.getResource("/$rootFileName")
-        if (rootUrl == null) {
-            throw IOException()
-        }
+        val rootUrl = DockerTest::class.java.getResource("/$rootFileName") ?: throw IOException()
 
         val rootFile = File(rootUrl.file)
         val latexFile = File(DockerTest::class.java.getResource("/$latexFileName").file)
@@ -85,7 +82,7 @@ class PubsubTest {
 
         val taskReceiver = TaskReceiver(tasksDir, resultTopic, mockCallback)
         val manager = SubscribeManager("", taskReceiver)
-        manager.pushMessage(pubsubMessage)
+        manager.pushMessage(taskId, rootFileName, zipBytes)
     }
 
     @Test(expected = IOException::class)
