@@ -22,7 +22,7 @@ import com.google.cloud.pubsub.v1.Publisher
 import com.google.protobuf.ByteString
 import com.google.pubsub.v1.PubsubMessage
 import com.google.pubsub.v1.TopicName
-import java.util.logging.Logger
+import org.slf4j.LoggerFactory
 
 fun getResultData(taskId: String, statusCode: Int, result: String): ByteString {
     return CompilerFleet.CompilerFleetResult.newBuilder()
@@ -33,7 +33,7 @@ fun getResultData(taskId: String, statusCode: Int, result: String): ByteString {
             .toByteString()
 }
 
-val logger = Logger.getLogger(Publisher::class.java.getName())
+private val logger = LoggerFactory.getLogger("Publisher")
 
 class Publisher(private val topicName: String) {
     private val pubsubPublisher: Publisher

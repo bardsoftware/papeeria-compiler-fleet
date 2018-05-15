@@ -60,7 +60,7 @@ abstract class CompilerFleetMessageReceiver : MessageReceiver {
     abstract fun processMessage(message: PubsubMessage)
 }
 
-val taskReceiverLogger = Logger.getLogger(TaskReceiver::class.java.getName())
+private val taskReceiverLogger = Logger.getLogger("TaskReceiver")
 
 internal class TaskReceiver(tasksDirectory: String,
                             resultTopic: String,
