@@ -27,9 +27,14 @@ import java.nio.file.Paths
 const val PDF_EXTENSION = ".pdf"
 
 class DockerProcessor {
-    private val docker: DockerClient = DefaultDockerClient.fromEnv().build()
+    private var docker: DockerClient? = null
 
     fun compileRmdToPdf(rootFile: File): File {
+        if (docker == null) {
+            docker = DefaultDockerClient.fromEnv().build()
+        }
+        val docker = this.docker!!
+
         var containerId:String? = null
         val fileName = rootFile.name
         val parentDir = rootFile.parentFile.absoluteFile.path
@@ -45,20 +50,19 @@ class DockerProcessor {
                     .hostConfig(hostConfig)
                     .build()
 
-            val creation = this.docker.createContainer(containerConfig)
+            val creation = docker.createContainer(containerConfig)
             containerId = creation.id()
-            this.docker.startContainer(containerId)
-            this.docker.waitContainer(containerId);
+            docker.startContainer(containerId)
+            docker.waitContainer(containerId)
 
             val compiledRmd = FilenameUtils.removeExtension(fileName) + PDF_EXTENSION
-
             return Paths.get(parentDir).resolve(compiledRmd).toFile()
         } catch (e: Exception) {
             e.printStackTrace()
         } finally {
             containerId?.let {
-                this.docker.stopContainer(it, 0)
-                this.docker.removeContainer(it)
+                docker.stopContainer(it, 0)
+                docker.removeContainer(it)
             }
         }
 

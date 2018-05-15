@@ -15,18 +15,51 @@
  */
 package com.bardsoftware.backend.fleet.rmarkdown
 
-import junit.framework.Assert.assertEquals
+import com.spotify.docker.client.DockerClient
+import com.spotify.docker.client.messages.ContainerConfig
+import com.spotify.docker.client.messages.ContainerCreation
+import org.junit.Before
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.mockito.InjectMocks
+import org.mockito.Matchers.any
+import org.mockito.Mock
+import org.mockito.Mockito.*
+import org.mockito.MockitoAnnotations
+import org.mockito.runners.MockitoJUnitRunner
 import java.io.File
 
+
+@RunWith(MockitoJUnitRunner::class)
 class DockerTest {
-    private val dockerProcessor = DockerProcessor()
+    @Mock
+    lateinit var docker: DockerClient
+
+    @InjectMocks
+    lateinit var dockerProcessor: DockerProcessor
+
+    @Before
+    fun setUp() {
+        MockitoAnnotations.initMocks(this)
+    }
 
     @Test
-    fun testCompile() {
-        val rmarkdown = DockerTest::class.java.getResource("/rmarkdown-cv.Rmd")
-        val compiledPdf = dockerProcessor.compileRmdToPdf(File(rmarkdown.file))
-        assertEquals(250790436864, compiledPdf.totalSpace)
-        compiledPdf.deleteOnExit()
+    fun testDocker() {
+        val file = mock(File::class.java)
+        `when`(file.name).thenReturn("name")
+        `when`(file.path).thenReturn("path")
+        `when`(file.parentFile).thenReturn(file)
+        `when`(file.absoluteFile).thenReturn(file)
+
+        val creation = mock(ContainerCreation::class.java)
+        `when`(creation.id()).thenReturn("id")
+
+
+        `when`(docker.createContainer(any(ContainerConfig::class.java))).thenReturn(creation)
+
+        dockerProcessor.compileRmdToPdf(file)
+
+        verify(docker, times(1)).startContainer("id")
+        verify(docker, times(1)).waitContainer("id")
     }
 }
