@@ -29,6 +29,7 @@ import java.io.IOException
 import java.nio.file.Path
 import java.nio.file.Paths
 import java.util.concurrent.CompletableFuture
+import java.util.logging.Logger
 import java.util.zip.ZipEntry
 import java.util.zip.ZipInputStream
 
@@ -59,9 +60,11 @@ abstract class CompilerFleetMessageReceiver : MessageReceiver {
     abstract fun processMessage(message: PubsubMessage)
 }
 
+val taskReceiverLogger = Logger.getLogger(TaskReceiver::class.java.getName())
+
 internal class TaskReceiver(tasksDirectory: String,
                             resultTopic: String,
-                            private val callback: (message: String, md5sum: String) -> Unit
+                            private val onMessageProcessed: (message: String, md5sum: String) -> Unit
 ) : CompilerFleetMessageReceiver() {
     private val dockerProcessor = DockerProcessor()
     private val resultPublisher = Publisher(resultTopic)
@@ -118,10 +121,15 @@ internal class TaskReceiver(tasksDirectory: String,
         }
 
         val md5sum = dockerProcessor.getMd5Sum(rootFile)
-        this.callback("md5 sum of root file", md5sum)
+        val statusCode = 0
+        this.onMessageProcessed("md5 sum of root file", md5sum)
 
-        val data = getResultData(taskId, 0, md5sum.toByteArray())
-        resultPublisher.publish(data)
+        val onPublishFailureCallback= {
+            taskReceiverLogger.info("Publish failed: taskId = $taskId, status code = $statusCode, md5 sum: $md5sum")
+        }
+
+        val data = getResultData(taskId, statusCode, md5sum)
+        resultPublisher.publish(data, onPublishFailureCallback)
     }
 }
 
