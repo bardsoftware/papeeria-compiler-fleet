@@ -1,4 +1,4 @@
-group 'compiler-fleet'
+group 'papeeria-compiler-fleet'
 version '1.0-SNAPSHOT'
 
 buildscript {
