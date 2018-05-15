@@ -32,7 +32,7 @@ class DockerProcessor {
     fun compileRmdToPdf(rootFile: File): File {
         var containerId:String? = null
         val fileName = rootFile.name
-        val parentDir = rootFile.parent
+        val parentDir = rootFile.parentFile.absoluteFile.path
 
         try {
             val hostConfig = HostConfig.builder()

@@ -100,7 +100,7 @@ internal class TaskReceiver(tasksDirectory: String,
             val filename = entry.name
             val newFile = destination.resolve(filename).toFile()
 
-            if (!newFile.parentFile.mkdirs()) {
+            if (!newFile.parentFile.exists() && !newFile.parentFile.mkdirs()) {
                 val dirName = newFile.parentFile.name
                 throw IOException("In task(id = $taskId): unable to create $dirName directory while unzipping")
             }

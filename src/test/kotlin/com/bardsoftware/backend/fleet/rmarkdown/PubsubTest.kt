@@ -17,8 +17,8 @@ package com.bardsoftware.backend.fleet.rmarkdown
 
 import com.google.protobuf.ByteString
 import com.google.pubsub.v1.PubsubMessage
+import org.apache.commons.io.FileUtils
 import org.junit.After
-import org.junit.Assert.assertEquals
 import org.junit.Before
 import org.junit.Test
 import java.io.ByteArrayOutputStream
@@ -26,11 +26,13 @@ import java.io.File
 import java.io.IOException
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
+import kotlin.test.assertEquals
 
 class PubsubTest {
     private val tasksDir = "tasks"
     private val resultTopic = "rmarkdown-results"
-    private var rootFileName = "mytext.txt"
+    private var rootFileName = "rmarkdown-cv.Rmd"
+    private val latexFileName = "latex-cv.tex"
 
     @Before
     fun createDir() {
@@ -39,14 +41,26 @@ class PubsubTest {
 
     @Test
     fun processFileUnzipTest() {
-        val message = "test message"
+        val rootUrl = DockerTest::class.java.getResource("/$rootFileName")
+        if (rootUrl == null) {
+            throw IOException()
+        }
+
+        val rootFile = File(rootUrl.file)
+        val latexFile = File(DockerTest::class.java.getResource("/$latexFileName").file)
+
         val byteOutput = ByteArrayOutputStream()
         val output = ZipOutputStream(byteOutput)
-        val entry = ZipEntry("mytext.txt")
-        output.putNextEntry(entry)
-        output.write(message.toByteArray())
-
+        val entryRootFile = ZipEntry(rootFileName)
+        output.putNextEntry(entryRootFile)
+        output.write(FileUtils.readFileToByteArray(rootFile))
         output.closeEntry()
+
+        val entryLatex = ZipEntry(latexFileName)
+        output.putNextEntry(entryLatex)
+        output.write(FileUtils.readFileToByteArray(latexFile))
+        output.closeEntry()
+
         output.close()
 
         val zipBytes = ByteString.copyFrom(byteOutput.toByteArray())
@@ -57,15 +71,16 @@ class PubsubTest {
         request.setZipBytes(zipBytes)
                 .setRootFileName(rootFileName)
                 .setTaskId(taskId)
-                .build().writeTo(byteOutputObj)
+                .build()
+                .writeTo(byteOutputObj)
 
         val data = ByteString.copyFrom(byteOutputObj.toByteArray())
         val pubsubMessage = PubsubMessage.newBuilder()
                 .setData(data)
                 .build()
 
-        val mockCallback = { acceptedMessage: String, acceptedMd5sum: String ->
-            assertEquals("f11a425906289abf8cce1733622834c8  -\n", acceptedMd5sum)
+        val mockCallback = { _: String, acceptedPdf: String ->
+            assertEquals("rmarkdown-cv.pdf", acceptedPdf)
         }
 
         val taskReceiver = TaskReceiver(tasksDir, resultTopic, mockCallback)
