@@ -56,7 +56,7 @@ class Publisher(private val topicName: String) {
         ApiFutures.addCallback(future, object : ApiFutureCallback<String> {
 
             override fun onFailure(throwable: Throwable) {
-                LOGGER.info(throwable.toString())
+                LOGGER.error("Failed on publish with message:", throwable.message, throwable)
                 onFailureCallback()
             }
 

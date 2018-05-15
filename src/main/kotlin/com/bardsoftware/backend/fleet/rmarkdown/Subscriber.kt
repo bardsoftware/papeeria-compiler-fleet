@@ -23,13 +23,13 @@ import com.google.common.io.ByteStreams
 import com.google.pubsub.v1.PubsubMessage
 import com.google.pubsub.v1.SubscriptionName
 import com.xenomachina.argparser.ArgParser
+import org.slf4j.LoggerFactory
 import java.io.ByteArrayInputStream
 import java.io.FileOutputStream
 import java.io.IOException
 import java.nio.file.Path
 import java.nio.file.Paths
 import java.util.concurrent.CompletableFuture
-import java.util.logging.Logger
 import java.util.zip.ZipEntry
 import java.util.zip.ZipInputStream
 
@@ -60,7 +60,7 @@ abstract class CompilerFleetMessageReceiver : MessageReceiver {
     abstract fun processMessage(message: PubsubMessage)
 }
 
-private val TASK_LOGGER = Logger.getLogger("TaskReceiver")
+private val LOGGER = LoggerFactory.getLogger("TaskReceiver")
 
 internal class TaskReceiver(tasksDirectory: String,
                             resultTopic: String,
@@ -124,8 +124,8 @@ internal class TaskReceiver(tasksDirectory: String,
         val statusCode = 0
         this.onMessageProcessed("md5 sum of root file", md5sum)
 
-        val onPublishFailureCallback= {
-            TASK_LOGGER.info("Publish failed: taskId = $taskId, status code = $statusCode, md5 sum: $md5sum")
+        val onPublishFailureCallback = {
+            LOGGER.info("Publish failed: taskId = $taskId, status code = $statusCode, md5 sum: $md5sum")
         }
 
         val data = getResultData(taskId, statusCode, md5sum)
