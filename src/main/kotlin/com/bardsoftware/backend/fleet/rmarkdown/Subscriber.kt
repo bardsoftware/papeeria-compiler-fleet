@@ -60,7 +60,7 @@ abstract class CompilerFleetMessageReceiver : MessageReceiver {
     abstract fun processMessage(message: PubsubMessage)
 }
 
-private val taskReceiverLogger = Logger.getLogger("TaskReceiver")
+private val TASK_LOGGER = Logger.getLogger("TaskReceiver")
 
 internal class TaskReceiver(tasksDirectory: String,
                             resultTopic: String,
@@ -125,7 +125,7 @@ internal class TaskReceiver(tasksDirectory: String,
         this.onMessageProcessed("md5 sum of root file", md5sum)
 
         val onPublishFailureCallback= {
-            taskReceiverLogger.info("Publish failed: taskId = $taskId, status code = $statusCode, md5 sum: $md5sum")
+            TASK_LOGGER.info("Publish failed: taskId = $taskId, status code = $statusCode, md5 sum: $md5sum")
         }
 
         val data = getResultData(taskId, statusCode, md5sum)

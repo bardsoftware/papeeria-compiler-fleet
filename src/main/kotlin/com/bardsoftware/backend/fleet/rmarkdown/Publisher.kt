@@ -33,7 +33,7 @@ fun getResultData(taskId: String, statusCode: Int, result: String): ByteString {
             .toByteString()
 }
 
-private val logger = LoggerFactory.getLogger("Publisher")
+private val LOGGER = LoggerFactory.getLogger("Publisher")
 
 class Publisher(private val topicName: String) {
     private val pubsubPublisher: Publisher
@@ -56,12 +56,12 @@ class Publisher(private val topicName: String) {
         ApiFutures.addCallback(future, object : ApiFutureCallback<String> {
 
             override fun onFailure(throwable: Throwable) {
-                logger.info(throwable.toString())
+                LOGGER.info(throwable.toString())
                 onFailureCallback()
             }
 
             override fun onSuccess(messageId: String) {
-                logger.info("successful published $messageId")
+                LOGGER.info("successful published $messageId")
             }
         })
     }
