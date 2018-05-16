@@ -49,6 +49,12 @@ class SubscriberArgs(parser: ArgParser) {
     )
 }
 
+enum class StatusCode(private val code: Int) {
+    SUCCESS(0), FAILURE(1);
+
+    fun getCode(): Int = code
+}
+
 private val PROJECT_ID = ServiceOptions.getDefaultProjectId()
 
 abstract class CompilerFleetMessageReceiver : MessageReceiver {
@@ -121,14 +127,13 @@ internal class TaskReceiver(tasksDirectory: String,
         }
 
         val md5sum = dockerProcessor.getMd5Sum(rootFile)
-        val statusCode = 0
         this.onMessageProcessed("md5 sum of root file", md5sum)
 
         val onPublishFailureCallback = {
-            LOGGER.info("Publish failed: taskId = $taskId, status code = $statusCode, md5 sum: $md5sum")
+            LOGGER.info("Publish failed: taskId = $taskId, status code = ${StatusCode.SUCCESS.getCode()}, md5 sum: $md5sum")
         }
 
-        val data = getResultData(taskId, statusCode, md5sum)
+        val data = getResultData(taskId, StatusCode.SUCCESS.getCode(), md5sum)
         resultPublisher.publish(data, onPublishFailureCallback)
     }
 }
