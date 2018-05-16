@@ -29,7 +29,7 @@ const val PDF_EXTENSION = ".pdf"
 class DockerProcessor(private val docker: DockerClient) {
 
     fun compileRmdToPdf(rootFile: File): File {
-        var containerId:String? = null
+        var containerId: String? = null
         val fileName = rootFile.name
         val parentDir = rootFile.parentFile.absoluteFile.path
 

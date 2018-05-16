@@ -67,7 +67,7 @@ internal class TaskReceiver(tasksDirectory: String,
                             private val callback: (message: String, filename: String) -> Unit
 ) : CompilerFleetMessageReceiver() {
     private val dockerProcessor = DockerProcessor(getDefaultDockerClient())
-    private var resultPublisher = Publisher(resultTopic)
+    private val resultPublisher = Publisher(resultTopic)
     private val tasksDir: Path
 
     init {
@@ -75,14 +75,7 @@ internal class TaskReceiver(tasksDirectory: String,
         val directoryFile = directoryPath.toFile()
         val directoryName = directoryFile.name
 
-        if (!directoryFile.exists()) {
-            throw IOException("tasksDir directory(name is $directoryName) doesn't exists")
-        }
-
-        if (!directoryFile.isDirectory) {
-            throw IOException("tasksDir directory(name is $directoryName) actually isn't a directory")
-        }
-
+        directoryExistingCheck(directoryFile)
         if (!directoryFile.canWrite()) {
             throw IOException("tasksDir directory(name is $directoryName) isn't writable")
         }
@@ -90,7 +83,7 @@ internal class TaskReceiver(tasksDirectory: String,
         this.tasksDir = directoryPath
     }
 
-    fun processCompileTask(taskId: String, rootFileName: String, zipBytes: ByteString): File {
+    fun unzipCompileTask(taskId: String, rootFileName: String, zipBytes: ByteString): File {
         val destination = this.tasksDir.resolve(taskId).resolve("files")
         val zipStream = ZipInputStream(ByteArrayInputStream(zipBytes.toByteArray()))
         var entry: ZipEntry? = zipStream.nextEntry
@@ -124,7 +117,7 @@ internal class TaskReceiver(tasksDirectory: String,
         val taskId = request.taskId
         val rootFileName = request.rootFileName
         val zipBytes = request.zipBytes
-        val rootFile = processCompileTask(taskId, rootFileName, zipBytes)
+        val rootFile = unzipCompileTask(taskId, rootFileName, zipBytes)
         val compiledPdf = dockerProcessor.compileRmdToPdf(rootFile)
         this.callback("Compiled pdf name: ", compiledPdf.name)
 
@@ -153,7 +146,7 @@ class SubscribeManager(subscriptionId: String,
     }
 
     fun pushMessage(taskId: String, rootFileName: String, zipBytes: ByteString) {
-        (this.receiver as TaskReceiver).processCompileTask(taskId, rootFileName, zipBytes)
+        (this.receiver as TaskReceiver).unzipCompileTask(taskId, rootFileName, zipBytes)
     }
 }
 
