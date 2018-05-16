@@ -31,7 +31,7 @@ import kotlin.test.assertEquals
 class PubsubTest {
     private val tasksDir = "tasks"
     private val resultTopic = "rmarkdown-results"
-    private var rootFileName = "rmarkdown-cv.Rmd"
+    private var rootFileName = "example.Rmd"
 
     @Before
     fun createDir() {
@@ -54,12 +54,12 @@ class PubsubTest {
                 .writeTo(byteOutputObj)
 
         val mockCallback = { _: String, acceptedPdf: String ->
-            assertEquals("rmarkdown-cv.pdf", acceptedPdf)
         }
 
         val taskReceiver = TaskReceiver(tasksDir, resultTopic, mockCallback)
         val manager = SubscribeManager("", taskReceiver)
-        manager.pushMessage(taskId, rootFileName, zipBytes)
+        val rootFile = manager.pushMessage(taskId, rootFileName, zipBytes)
+        assertEquals(rootFileName, rootFile.name)
     }
 
     @Test(expected = IOException::class)

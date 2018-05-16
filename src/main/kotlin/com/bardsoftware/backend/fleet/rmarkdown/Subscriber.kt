@@ -145,8 +145,8 @@ class SubscribeManager(subscriptionId: String,
         }
     }
 
-    fun pushMessage(taskId: String, rootFileName: String, zipBytes: ByteString) {
-        (this.receiver as TaskReceiver).unzipCompileTask(taskId, rootFileName, zipBytes)
+    fun pushMessage(taskId: String, rootFileName: String, zipBytes: ByteString): File {
+        return (this.receiver as TaskReceiver).unzipCompileTask(taskId, rootFileName, zipBytes)
     }
 }
 
