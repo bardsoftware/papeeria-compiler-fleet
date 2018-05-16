@@ -17,6 +17,12 @@ package com.bardsoftware.backend.fleet.rmarkdown
 
 import com.google.protobuf.ByteString
 import com.google.pubsub.v1.PubsubMessage
+import org.apache.commons.io.FileUtils
+import java.io.ByteArrayOutputStream
+import java.io.File
+import java.io.IOException
+import java.util.zip.ZipEntry
+import java.util.zip.ZipOutputStream
 
 fun getRequestData(zipBytes: ByteArray, rootFileName: String, taskId: String): ByteString {
     return CompilerFleet.CompilerFleetRequest.newBuilder()
@@ -25,6 +31,33 @@ fun getRequestData(zipBytes: ByteArray, rootFileName: String, taskId: String): B
             .setTaskId(taskId)
             .build()
             .toByteString()
+}
+
+fun directoryExistingCheck(directory: File) {
+    if (!directory.exists()) {
+        throw IOException("tasksDir directory(name is $directory) doesn't exists")
+    }
+
+    if (!directory.isDirectory) {
+        throw IOException("tasksDir directory(name is $directory) actually isn't a directory")
+    }
+}
+
+fun zipDirectory(directory: File): ByteArray {
+    directoryExistingCheck(directory)
+
+    val byteOutput = ByteArrayOutputStream()
+    val output = ZipOutputStream(byteOutput)
+    for (fileInDirectory in directory.listFiles()) {
+        val entry = ZipEntry(fileInDirectory.name)
+
+        output.putNextEntry(entry)
+        output.write(FileUtils.readFileToByteArray(fileInDirectory))
+        output.closeEntry()
+    }
+
+    output.close()
+    return byteOutput.toByteArray()
 }
 
 class ResultReceiver() : CompilerFleetMessageReceiver() {
