@@ -20,10 +20,13 @@ import com.google.cloud.pubsub.v1.AckReplyConsumer
 import com.google.cloud.pubsub.v1.MessageReceiver
 import com.google.cloud.pubsub.v1.Subscriber
 import com.google.common.io.ByteStreams
+import com.google.protobuf.ByteString
 import com.google.pubsub.v1.PubsubMessage
 import com.google.pubsub.v1.SubscriptionName
 import com.xenomachina.argparser.ArgParser
+import org.apache.commons.io.FileUtils
 import java.io.ByteArrayInputStream
+import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
 import java.nio.file.Path
@@ -59,11 +62,11 @@ abstract class CompilerFleetMessageReceiver : MessageReceiver {
     abstract fun processMessage(message: PubsubMessage)
 }
 
-internal class TaskReceiver(tasksDirectory: String,
+class TaskReceiver(tasksDirectory: String,
                             resultTopic: String,
-                            private val callback: (message: String, md5sum: String) -> Unit
+                            private val callback: (message: String, filename: String) -> Unit
 ) : CompilerFleetMessageReceiver() {
-    private val dockerProcessor = DockerProcessor()
+    private val dockerProcessor = DockerProcessor(getDefaultDockerClient())
     private val resultPublisher = Publisher(resultTopic)
     private val tasksDir: Path
 
@@ -72,14 +75,7 @@ internal class TaskReceiver(tasksDirectory: String,
         val directoryFile = directoryPath.toFile()
         val directoryName = directoryFile.name
 
-        if (!directoryFile.exists()) {
-            throw IOException("tasksDir directory(name is $directoryName) doesn't exists")
-        }
-
-        if (!directoryFile.isDirectory) {
-            throw IOException("tasksDir directory(name is $directoryName) actually isn't a directory")
-        }
-
+        directoryExistingCheck(directoryFile)
         if (!directoryFile.canWrite()) {
             throw IOException("tasksDir directory(name is $directoryName) isn't writable")
         }
@@ -87,19 +83,16 @@ internal class TaskReceiver(tasksDirectory: String,
         this.tasksDir = directoryPath
     }
 
-    override fun processMessage(message: PubsubMessage) {
-        val request = CompilerFleet.CompilerFleetRequest.parseFrom(message.data)
-
-        val taskId = request.taskId
+    fun unzipCompileTask(taskId: String, rootFileName: String, zipBytes: ByteString): File {
         val destination = this.tasksDir.resolve(taskId).resolve("files")
-        val zipStream = ZipInputStream(ByteArrayInputStream(request.zipBytes.toByteArray()))
+        val zipStream = ZipInputStream(ByteArrayInputStream(zipBytes.toByteArray()))
         var entry: ZipEntry? = zipStream.nextEntry
 
         while (entry != null) {
             val filename = entry.name
             val newFile = destination.resolve(filename).toFile()
 
-            if (!newFile.parentFile.mkdirs()) {
+            if (!newFile.parentFile.exists() && !newFile.parentFile.mkdirs()) {
                 val dirName = newFile.parentFile.name
                 throw IOException("In task(id = $taskId): unable to create $dirName directory while unzipping")
             }
@@ -111,22 +104,30 @@ internal class TaskReceiver(tasksDirectory: String,
             entry = zipStream.nextEntry
         }
 
-        val rootFileName = request.rootFileName
         val rootFile = destination.resolve(rootFileName).toFile()
         if (!rootFile.exists()) {
             throw IOException("In task(id = $taskId): path to root file doesn't exists")
         }
 
-        val md5sum = dockerProcessor.getMd5Sum(rootFile)
-        this.callback("md5 sum of root file", md5sum)
+        return rootFile
+    }
 
-        val data = getResultData(taskId, 0, md5sum.toByteArray())
+    override fun processMessage(message: PubsubMessage) {
+        val request = CompilerFleet.CompilerFleetRequest.parseFrom(message.data)
+        val taskId = request.taskId
+        val rootFileName = request.rootFileName
+        val zipBytes = request.zipBytes
+        val rootFile = unzipCompileTask(taskId, rootFileName, zipBytes)
+        val compiledPdf = dockerProcessor.compileRmdToPdf(rootFile)
+        this.callback("Compiled pdf name: ", compiledPdf.name)
+
+        val data = getResultData(taskId, 0, FileUtils.readFileToByteArray(compiledPdf))
         resultPublisher.publish(data)
     }
 }
 
 class SubscribeManager(subscriptionId: String,
-                       private val receiver: CompilerFleetMessageReceiver) {
+                       private val receiver: TaskReceiver) {
     private val subscriptionName = SubscriptionName.of(PROJECT_ID, subscriptionId)
 
     fun subscribe() {
@@ -144,8 +145,8 @@ class SubscribeManager(subscriptionId: String,
         }
     }
 
-    fun pushMessage(message: PubsubMessage) {
-        this.receiver.processMessage(message)
+    fun pushMessage(taskId: String, rootFileName: String, zipBytes: ByteString): File {
+        return this.receiver.unzipCompileTask(taskId, rootFileName, zipBytes)
     }
 }
 
@@ -155,9 +156,8 @@ fun main(args: Array<String>) {
     val tasksDir = parsedArgs.tasksDir
     val resultTopic = parsedArgs.resultTopic
 
-    val printerCallback = { message: String, md5sum: String? ->
-        println("Data: $message")
-        println("md5 sum: $md5sum")
+    val printerCallback = { message: String, filename: String? ->
+        println("$message: $filename")
     }
 
     val taskReceiver = TaskReceiver(tasksDir, resultTopic, printerCallback)

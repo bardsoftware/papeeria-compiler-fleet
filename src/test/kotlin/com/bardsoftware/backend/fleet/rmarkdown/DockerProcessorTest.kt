@@ -15,21 +15,43 @@
  */
 package com.bardsoftware.backend.fleet.rmarkdown
 
-import org.apache.commons.io.FileUtils
-import org.junit.Assert.assertEquals
+import com.spotify.docker.client.DockerClient
+import com.spotify.docker.client.messages.ContainerConfig
+import com.spotify.docker.client.messages.ContainerCreation
+import org.junit.Before
 import org.junit.Test
-import java.nio.charset.Charset
+import org.junit.runner.RunWith
+import org.mockito.InjectMocks
+import org.mockito.Matchers.any
+import org.mockito.Mock
+import org.mockito.Mockito.*
+import org.mockito.MockitoAnnotations
+import org.mockito.runners.MockitoJUnitRunner
+import java.io.File
+
 
 class DockerTest {
-    private val dockerProcessor = DockerProcessor()
 
     @Test
-    fun testMessageSum() {
-        val file = createTempFile("test", ".txt")
+    fun testDocker() {
+        val docker = mock(DockerClient::class.java)
+        val dockerProcessor = DockerProcessor(docker)
 
-        FileUtils.writeStringToFile(file, "hello message", Charset.defaultCharset())
+        val file = mock(File::class.java)
+        `when`(file.name).thenReturn("name")
+        `when`(file.path).thenReturn("path")
+        `when`(file.parentFile).thenReturn(file)
+        `when`(file.absolutePath).thenReturn("path")
 
-        val actualSum = dockerProcessor.getMd5Sum(file)
-        assertEquals("387d1f75a179d782a473cf21fb893e33  -\n", actualSum)
+        val creation = mock(ContainerCreation::class.java)
+        `when`(creation.id()).thenReturn("id")
+
+
+        `when`(docker.createContainer(any(ContainerConfig::class.java))).thenReturn(creation)
+
+        dockerProcessor.compileRmdToPdf(file)
+
+        verify(docker, times(1)).startContainer("id")
+        verify(docker, times(1)).waitContainer("id")
     }
 }

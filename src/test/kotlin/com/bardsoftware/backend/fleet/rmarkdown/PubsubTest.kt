@@ -16,21 +16,22 @@
 package com.bardsoftware.backend.fleet.rmarkdown
 
 import com.google.protobuf.ByteString
-import com.google.pubsub.v1.PubsubMessage
+import org.apache.commons.io.FileUtils
 import org.junit.After
-import org.junit.Assert.assertEquals
 import org.junit.Before
 import org.junit.Test
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.IOException
+import java.nio.file.Paths
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
+import kotlin.test.assertEquals
 
 class PubsubTest {
     private val tasksDir = "tasks"
     private val resultTopic = "rmarkdown-results"
-    private var rootFileName = "mytext.txt"
+    private var rootFileName = "example.Rmd"
 
     @Before
     fun createDir() {
@@ -39,17 +40,9 @@ class PubsubTest {
 
     @Test
     fun processFileUnzipTest() {
-        val message = "test message"
-        val byteOutput = ByteArrayOutputStream()
-        val output = ZipOutputStream(byteOutput)
-        val entry = ZipEntry("mytext.txt")
-        output.putNextEntry(entry)
-        output.write(message.toByteArray())
+        val resourcesDirectory = Paths.get("src","test","resources").toFile()
 
-        output.closeEntry()
-        output.close()
-
-        val zipBytes = ByteString.copyFrom(byteOutput.toByteArray())
+        val zipBytes = ByteString.copyFrom(zipDirectory(resourcesDirectory))
         val taskId = "testId"
         val request = CompilerFleet.CompilerFleetRequest.newBuilder()
 
@@ -57,20 +50,16 @@ class PubsubTest {
         request.setZipBytes(zipBytes)
                 .setRootFileName(rootFileName)
                 .setTaskId(taskId)
-                .build().writeTo(byteOutputObj)
-
-        val data = ByteString.copyFrom(byteOutputObj.toByteArray())
-        val pubsubMessage = PubsubMessage.newBuilder()
-                .setData(data)
                 .build()
+                .writeTo(byteOutputObj)
 
-        val mockCallback = { acceptedMessage: String, acceptedMd5sum: String ->
-            assertEquals("f11a425906289abf8cce1733622834c8  -\n", acceptedMd5sum)
+        val mockCallback = { _: String, acceptedPdf: String ->
         }
 
         val taskReceiver = TaskReceiver(tasksDir, resultTopic, mockCallback)
         val manager = SubscribeManager("", taskReceiver)
-        manager.pushMessage(pubsubMessage)
+        val rootFile = manager.pushMessage(taskId, rootFileName, zipBytes)
+        assertEquals(rootFileName, rootFile.name)
     }
 
     @Test(expected = IOException::class)
