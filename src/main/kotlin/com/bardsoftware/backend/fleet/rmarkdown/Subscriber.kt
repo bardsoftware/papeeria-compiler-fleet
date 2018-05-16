@@ -62,7 +62,7 @@ abstract class CompilerFleetMessageReceiver : MessageReceiver {
     abstract fun processMessage(message: PubsubMessage)
 }
 
-internal class TaskReceiver(tasksDirectory: String,
+class TaskReceiver(tasksDirectory: String,
                             resultTopic: String,
                             private val callback: (message: String, filename: String) -> Unit
 ) : CompilerFleetMessageReceiver() {
@@ -127,7 +127,7 @@ internal class TaskReceiver(tasksDirectory: String,
 }
 
 class SubscribeManager(subscriptionId: String,
-                       private val receiver: CompilerFleetMessageReceiver) {
+                       private val receiver: TaskReceiver) {
     private val subscriptionName = SubscriptionName.of(PROJECT_ID, subscriptionId)
 
     fun subscribe() {
@@ -146,7 +146,7 @@ class SubscribeManager(subscriptionId: String,
     }
 
     fun pushMessage(taskId: String, rootFileName: String, zipBytes: ByteString): File {
-        return (this.receiver as TaskReceiver).unzipCompileTask(taskId, rootFileName, zipBytes)
+        return this.receiver.unzipCompileTask(taskId, rootFileName, zipBytes)
     }
 }
 

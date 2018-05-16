@@ -31,7 +31,7 @@ class DockerProcessor(private val docker: DockerClient) {
     fun compileRmdToPdf(rootFile: File): File {
         var containerId: String? = null
         val fileName = rootFile.name
-        val parentDir = rootFile.parentFile.absoluteFile.path
+        val parentDir = rootFile.parentFile.absolutePath
 
         try {
             val hostConfig = HostConfig.builder()
@@ -52,6 +52,7 @@ class DockerProcessor(private val docker: DockerClient) {
             val compiledRmd = FilenameUtils.removeExtension(fileName) + PDF_EXTENSION
             return Paths.get(parentDir).resolve(compiledRmd).toFile()
         } catch (e: Exception) {
+            // TODO : log it after merging logging PR
             e.printStackTrace()
         } finally {
             containerId?.let {

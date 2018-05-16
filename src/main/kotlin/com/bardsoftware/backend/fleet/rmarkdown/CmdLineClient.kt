@@ -33,6 +33,7 @@ fun getRequestData(zipBytes: ByteArray, rootFileName: String, taskId: String): B
             .toByteString()
 }
 
+@Throws(IOException::class)
 fun directoryExistingCheck(directory: File) {
     if (!directory.exists()) {
         throw IOException("tasksDir directory(name is $directory) doesn't exists")
@@ -48,11 +49,11 @@ fun zipDirectory(directory: File): ByteArray {
 
     val byteOutput = ByteArrayOutputStream()
     val output = ZipOutputStream(byteOutput)
-    for (fileInDirectory in directory.listFiles()) {
-        val entry = ZipEntry(fileInDirectory.name)
+    for (file in directory.listFiles()) {
+        val entry = ZipEntry(file.name)
 
         output.putNextEntry(entry)
-        output.write(FileUtils.readFileToByteArray(fileInDirectory))
+        output.write(FileUtils.readFileToByteArray(file))
         output.closeEntry()
     }
 
