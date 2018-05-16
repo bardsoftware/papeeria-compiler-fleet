@@ -41,7 +41,7 @@ class DockerTest {
         `when`(file.name).thenReturn("name")
         `when`(file.path).thenReturn("path")
         `when`(file.parentFile).thenReturn(file)
-        `when`(file.absoluteFile).thenReturn(file)
+        `when`(file.absolutePath).thenReturn("path")
 
         val creation = mock(ContainerCreation::class.java)
         `when`(creation.id()).thenReturn("id")
