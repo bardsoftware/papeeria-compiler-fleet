@@ -49,10 +49,8 @@ class SubscriberArgs(parser: ArgParser) {
     )
 }
 
-enum class StatusCode(private val code: Int) {
-    SUCCESS(0), FAILURE(1);
-
-    fun getCode(): Int = code
+enum class StatusCode {
+    SUCCESS, FAILURE;
 }
 
 private val PROJECT_ID = ServiceOptions.getDefaultProjectId()
@@ -130,10 +128,10 @@ internal class TaskReceiver(tasksDirectory: String,
         this.onMessageProcessed("md5 sum of root file", md5sum)
 
         val onPublishFailureCallback = {
-            LOGGER.info("Publish failed: taskId = $taskId, status code = ${StatusCode.SUCCESS.getCode()}, md5 sum: $md5sum")
+            LOGGER.info("Publish failed: taskId = $taskId, status code: ${StatusCode.SUCCESS}, md5 sum: $md5sum")
         }
 
-        val data = getResultData(taskId, StatusCode.SUCCESS.getCode(), md5sum)
+        val data = getResultData(taskId, StatusCode.SUCCESS, md5sum)
         resultPublisher.publish(data, onPublishFailureCallback)
     }
 }

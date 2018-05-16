@@ -24,10 +24,10 @@ import com.google.pubsub.v1.PubsubMessage
 import com.google.pubsub.v1.TopicName
 import org.slf4j.LoggerFactory
 
-fun getResultData(taskId: String, statusCode: Int, result: String): ByteString {
+fun getResultData(taskId: String, statusCode: StatusCode, result: String): ByteString {
     return CompilerFleet.CompilerFleetResult.newBuilder()
             .setTaskId(taskId)
-            .setStatusCode(statusCode)
+            .setStatusCode(statusCode.ordinal)
             .setResultBytes(ByteString.copyFrom(result.toByteArray()))
             .build()
             .toByteString()
