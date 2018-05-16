@@ -23,6 +23,7 @@ import org.junit.Test
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.IOException
+import java.nio.file.Paths
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
 import kotlin.test.assertEquals
@@ -31,7 +32,6 @@ class PubsubTest {
     private val tasksDir = "tasks"
     private val resultTopic = "rmarkdown-results"
     private var rootFileName = "rmarkdown-cv.Rmd"
-    private val latexFileName = "latex-cv.tex"
 
     @Before
     fun createDir() {
@@ -40,26 +40,9 @@ class PubsubTest {
 
     @Test
     fun processFileUnzipTest() {
-        val rootUrl = DockerTest::class.java.getResource("/$rootFileName") ?: throw IOException()
+        val resourcesDirectory = Paths.get("src","test","resources").toFile()
 
-        val rootFile = File(rootUrl.file)
-        val latexFile = File(DockerTest::class.java.getResource("/$latexFileName").file)
-
-        val byteOutput = ByteArrayOutputStream()
-        val output = ZipOutputStream(byteOutput)
-        val entryRootFile = ZipEntry(rootFileName)
-        output.putNextEntry(entryRootFile)
-        output.write(FileUtils.readFileToByteArray(rootFile))
-        output.closeEntry()
-
-        val entryLatex = ZipEntry(latexFileName)
-        output.putNextEntry(entryLatex)
-        output.write(FileUtils.readFileToByteArray(latexFile))
-        output.closeEntry()
-
-        output.close()
-
-        val zipBytes = ByteString.copyFrom(byteOutput.toByteArray())
+        val zipBytes = ByteString.copyFrom(zipDirectory(resourcesDirectory))
         val taskId = "testId"
         val request = CompilerFleet.CompilerFleetRequest.newBuilder()
 
