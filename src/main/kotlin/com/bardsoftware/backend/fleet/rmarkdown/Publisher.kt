@@ -22,11 +22,7 @@ import com.google.cloud.pubsub.v1.Publisher
 import com.google.protobuf.ByteString
 import com.google.pubsub.v1.PubsubMessage
 import com.google.pubsub.v1.TopicName
-import com.xenomachina.argparser.ArgParser
 import org.slf4j.LoggerFactory
-import java.io.File
-import java.security.MessageDigest
-
 
 
 fun getResultData(taskId: String, statusCode: StatusCode, resultBytes: ByteArray): ByteString {
