@@ -37,7 +37,7 @@ class PubsubTest {
 
     @Test
     fun processFileUnzipTest() {
-        val resourcesDirectory = Paths.get("src","test","resources", "rmd-test").toFile()
+        val resourcesDirectory = Paths.get("src","test","resources").toFile()
 
         val zipBytes = ByteString.copyFrom(zipDirectory(resourcesDirectory))
         val taskId = "testId"

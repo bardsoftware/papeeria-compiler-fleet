@@ -35,7 +35,7 @@ fun getResultData(taskId: String, statusCode: StatusCode, resultBytes: ByteArray
 
 private val LOGGER = LoggerFactory.getLogger("Publisher")
 
-class Publisher(private val topicName: String) {
+open class Publisher(private val topicName: String) {
     private val pubsubPublisher: Publisher
 
     init {
