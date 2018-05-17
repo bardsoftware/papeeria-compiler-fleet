@@ -17,14 +17,31 @@ package com.bardsoftware.backend.fleet.rmarkdown
 
 import com.google.protobuf.ByteString
 import com.google.pubsub.v1.PubsubMessage
+import com.xenomachina.argparser.ArgParser
 import org.apache.commons.io.FileUtils
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.IOException
+import java.security.MessageDigest
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
 
-fun getRequestData(zipBytes: ByteArray, rootFileName: String, taskId: String): ByteString {
+class PublisherArgs(parser: ArgParser) {
+    val directory by parser.storing(
+            "--dir",
+            help = "directory to be zipped")
+
+    val rootFileName by parser.storing(
+            "-r", "--root-file",
+            help = "name of root rmarkdown file")
+
+    val publishTopic by parser.storing(
+            "-t", "--publish-topic",
+            help = "topic where zip will be published"
+    )
+}
+
+fun getPublishData(zipBytes: ByteArray, rootFileName: String, taskId: String): ByteString {
     return CompilerFleet.CompilerFleetRequest.newBuilder()
             .setZipBytes(ByteString.copyFrom(zipBytes))
             .setRootFileName(rootFileName)
@@ -68,4 +85,20 @@ class ResultReceiver() : CompilerFleetMessageReceiver() {
         println(result.taskId)
         println(String(result.resultBytes.toByteArray()))
     }
+}
+
+fun main(args: Array<String>) {
+    val parsedArgs = ArgParser(args).parseInto(::PublisherArgs)
+    val directory = parsedArgs.directory
+    val zippedData = zipDirectory(File(directory))
+    val topic = parsedArgs.publishTopic
+
+    val onFailureCallback = {
+    }
+
+    val messageDigest = MessageDigest.getInstance("SHA-1")
+    val taskId = String(messageDigest.digest(zippedData))
+    val publishData = getPublishData(zippedData, parsedArgs.rootFileName, taskId)
+
+    Publisher(topic).publish(publishData, onFailureCallback)
 }

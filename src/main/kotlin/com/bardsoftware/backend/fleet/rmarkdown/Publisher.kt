@@ -24,6 +24,7 @@ import com.google.pubsub.v1.PubsubMessage
 import com.google.pubsub.v1.TopicName
 import org.slf4j.LoggerFactory
 
+
 fun getResultData(taskId: String, statusCode: StatusCode, resultBytes: ByteArray): ByteString {
     return CompilerFleet.CompilerFleetResult.newBuilder()
             .setTaskId(taskId)
