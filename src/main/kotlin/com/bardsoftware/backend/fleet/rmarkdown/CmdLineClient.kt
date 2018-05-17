@@ -17,12 +17,28 @@ package com.bardsoftware.backend.fleet.rmarkdown
 
 import com.google.protobuf.ByteString
 import com.google.pubsub.v1.PubsubMessage
+import com.xenomachina.argparser.ArgParser
 import org.apache.commons.io.FileUtils
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.IOException
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
+
+class PublisherArgs(parser: ArgParser) {
+    val directory by parser.storing(
+            "--dir",
+            help = "directory to be zipped")
+
+    val rootFileName by parser.storing(
+            "-r", "--root-file",
+            help = "name of root rmardownfil ")
+
+    val publishTopic by parser.storing(
+            "-t", "--publish-topic",
+            help = "topic where zip will be published"
+    )
+}
 
 fun getRequestData(zipBytes: ByteArray, rootFileName: String, taskId: String): ByteString {
     return CompilerFleet.CompilerFleetRequest.newBuilder()

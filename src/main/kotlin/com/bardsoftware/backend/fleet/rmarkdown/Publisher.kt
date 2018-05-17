@@ -26,17 +26,6 @@ import com.xenomachina.argparser.ArgParser
 import org.slf4j.LoggerFactory
 import java.io.File
 
-class PublisherArgs(parser: ArgParser) {
-    val directory by parser.storing(
-            "--dir",
-            help = "directory to be zipped")
-
-    val publishTopic by parser.storing(
-            "-t", "--publish-topic",
-            help = "topic where zip will be published"
-    )
-}
-
 fun getResultData(taskId: String, statusCode: StatusCode, resultBytes: ByteArray): ByteString {
     return CompilerFleet.CompilerFleetResult.newBuilder()
             .setTaskId(taskId)
@@ -87,7 +76,6 @@ fun main(args: Array<String>) {
     val topic = parsedArgs.publishTopic
 
     val onFailureCallback = {
-        // retry publish?
     }
 
     Publisher(topic).publish(ByteString.copyFrom(zippedData), onFailureCallback)
