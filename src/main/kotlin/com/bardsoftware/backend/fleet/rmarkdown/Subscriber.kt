@@ -128,7 +128,7 @@ internal class TaskReceiver(tasksDirectory: String,
         this.onMessageProcessed("md5 sum of root file", md5sum)
 
         val onPublishFailureCallback = {
-            
+            LOGGER.info("Publish failed: $taskId, code: ${StatusCode.FAILURE}, md5 sum: $md5sum")
         }
 
         val data = getResultData(taskId, StatusCode.SUCCESS, md5sum)
