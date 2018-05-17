@@ -70,8 +70,8 @@ abstract class CompilerFleetMessageReceiver : MessageReceiver {
 private val LOGGER = LoggerFactory.getLogger("TaskReceiver")
 
 class TaskReceiver(tasksDirectory: String,
-                            resultTopic: String,
-                            private val callback: (message: String, filename: String) -> Unit
+                   resultTopic: String,
+                   private val callback: (message: String, filename: String) -> Unit
 ) : CompilerFleetMessageReceiver() {
     private val dockerProcessor = DockerProcessor(getDefaultDockerClient())
     private val resultPublisher = Publisher(resultTopic)
