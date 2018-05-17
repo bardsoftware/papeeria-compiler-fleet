@@ -19,7 +19,6 @@ import com.google.protobuf.ByteString
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
-import org.junit.runner.RunWith
 import org.mockito.Mockito.mock
 import java.io.ByteArrayOutputStream
 import java.io.File
