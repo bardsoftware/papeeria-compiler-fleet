@@ -16,21 +16,18 @@
 package com.bardsoftware.backend.fleet.rmarkdown
 
 import com.google.protobuf.ByteString
-import org.apache.commons.io.FileUtils
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
+import org.mockito.Mockito.mock
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.IOException
 import java.nio.file.Paths
-import java.util.zip.ZipEntry
-import java.util.zip.ZipOutputStream
 import kotlin.test.assertEquals
 
 class PubsubTest {
     private val tasksDir = "tasks"
-    private val resultTopic = "rmarkdown-results"
     private var rootFileName = "example.Rmd"
 
     @Before
@@ -53,10 +50,11 @@ class PubsubTest {
                 .build()
                 .writeTo(byteOutputObj)
 
-        val mockCallback = { _: String, acceptedPdf: String ->
+        val mockCallback = { _: String, _: String ->
         }
 
-        val taskReceiver = TaskReceiver(tasksDir, resultTopic, mockCallback)
+        val publisher = mock(Publisher::class.java)
+        val taskReceiver = TaskReceiver(tasksDir, publisher, mockCallback)
         val manager = SubscribeManager("", taskReceiver)
         val rootFile = manager.pushMessage(taskId, rootFileName, zipBytes)
         assertEquals(rootFileName, rootFile.name)
