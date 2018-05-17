@@ -22,7 +22,20 @@ import com.google.cloud.pubsub.v1.Publisher
 import com.google.protobuf.ByteString
 import com.google.pubsub.v1.PubsubMessage
 import com.google.pubsub.v1.TopicName
+import com.xenomachina.argparser.ArgParser
 import org.slf4j.LoggerFactory
+import java.io.File
+
+class PublisherArgs(parser: ArgParser) {
+    val directory by parser.storing(
+            "--dir",
+            help = "directory to be zipped")
+
+    val publishTopic by parser.storing(
+            "-t", "--publish-topic",
+            help = "topic where zip will be published"
+    )
+}
 
 fun getResultData(taskId: String, statusCode: StatusCode, resultBytes: ByteArray): ByteString {
     return CompilerFleet.CompilerFleetResult.newBuilder()
@@ -39,9 +52,9 @@ class Publisher(private val topicName: String) {
     private val pubsubPublisher: Publisher
 
     init {
-        val project_id = ServiceOptions.getDefaultProjectId()
+        val projectId = ServiceOptions.getDefaultProjectId()
         val topicId = this.topicName
-        val serviceTopicName = TopicName.of(project_id, topicId)
+        val serviceTopicName = TopicName.of(projectId, topicId)
 
         this.pubsubPublisher = Publisher.newBuilder(serviceTopicName).build()
     }
@@ -65,4 +78,17 @@ class Publisher(private val topicName: String) {
             }
         })
     }
+}
+
+fun main(args: Array<String>) {
+    val parsedArgs = ArgParser(args).parseInto(::PublisherArgs)
+    val directory = parsedArgs.directory
+    val zippedData = zipDirectory(File(directory))
+    val topic = parsedArgs.publishTopic
+
+    val onFailureCallback = {
+        // retry publish?
+    }
+
+    Publisher(topic).publish(ByteString.copyFrom(zippedData), onFailureCallback)
 }
