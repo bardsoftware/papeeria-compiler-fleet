@@ -71,19 +71,3 @@ class Publisher(private val topicName: String) {
         })
     }
 }
-
-fun main(args: Array<String>) {
-    val parsedArgs = ArgParser(args).parseInto(::PublisherArgs)
-    val directory = parsedArgs.directory
-    val zippedData = zipDirectory(File(directory))
-    val topic = parsedArgs.publishTopic
-
-    val onFailureCallback = {
-    }
-
-    val messageDigest = MessageDigest.getInstance("SHA-1")
-    val taskId = String(messageDigest.digest(zippedData))
-    val publishData = getPublishData(zippedData, parsedArgs.rootFileName, taskId)
-
-    Publisher(topic).publish(publishData, onFailureCallback)
-}

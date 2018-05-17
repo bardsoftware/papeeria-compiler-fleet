@@ -22,6 +22,7 @@ import org.apache.commons.io.FileUtils
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.IOException
+import java.security.MessageDigest
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
 
@@ -32,7 +33,7 @@ class PublisherArgs(parser: ArgParser) {
 
     val rootFileName by parser.storing(
             "-r", "--root-file",
-            help = "name of root rmardownfil ")
+            help = "name of root rmarkdown file")
 
     val publishTopic by parser.storing(
             "-t", "--publish-topic",
@@ -84,4 +85,20 @@ class ResultReceiver() : CompilerFleetMessageReceiver() {
         println(result.taskId)
         println(String(result.resultBytes.toByteArray()))
     }
+}
+
+fun main(args: Array<String>) {
+    val parsedArgs = ArgParser(args).parseInto(::PublisherArgs)
+    val directory = parsedArgs.directory
+    val zippedData = zipDirectory(File(directory))
+    val topic = parsedArgs.publishTopic
+
+    val onFailureCallback = {
+    }
+
+    val messageDigest = MessageDigest.getInstance("SHA-1")
+    val taskId = String(messageDigest.digest(zippedData))
+    val publishData = getPublishData(zippedData, parsedArgs.rootFileName, taskId)
+
+    Publisher(topic).publish(publishData, onFailureCallback)
 }
