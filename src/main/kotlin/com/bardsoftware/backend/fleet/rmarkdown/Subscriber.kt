@@ -128,8 +128,12 @@ class TaskReceiver(tasksDirectory: String,
         val compiledPdf = dockerProcessor.compileRmdToPdf(rootFile)
         this.callback("Compiled pdf name: ", compiledPdf.name)
 
-        val data = getResultData(taskId, 0, FileUtils.readFileToByteArray(compiledPdf))
-        resultPublisher.publish(data)
+        val onPublishFailureCallback = {
+            LOGGER.info("Publish $taskId failed with code ${StatusCode.FAILURE}")
+        }
+
+        val data = getResultData(taskId, StatusCode.SUCCESS, FileUtils.readFileToByteArray(compiledPdf))
+        resultPublisher.publish(data, onPublishFailureCallback)
     }
 }
 
