@@ -22,15 +22,18 @@ import com.google.cloud.pubsub.v1.Publisher
 import com.google.protobuf.ByteString
 import com.google.pubsub.v1.PubsubMessage
 import com.google.pubsub.v1.TopicName
+import org.slf4j.LoggerFactory
 
-fun getResultData(taskId: String, statusCode: Int, resultBytes: ByteArray): ByteString {
+fun getResultData(taskId: String, statusCode: StatusCode, resultBytes: ByteArray): ByteString {
     return CompilerFleet.CompilerFleetResult.newBuilder()
             .setTaskId(taskId)
-            .setStatusCode(statusCode)
+            .setStatusCode(statusCode.ordinal)
             .setResultBytes(ByteString.copyFrom(resultBytes))
             .build()
             .toByteString()
 }
+
+private val LOGGER = LoggerFactory.getLogger("Publisher")
 
 class Publisher(private val topicName: String) {
     private val pubsubPublisher: Publisher
@@ -43,7 +46,7 @@ class Publisher(private val topicName: String) {
         this.pubsubPublisher = Publisher.newBuilder(serviceTopicName).build()
     }
 
-    fun publish(data: ByteString) {
+    fun publish(data: ByteString, onFailureCallback: () -> Unit) {
         val pubsubMessage = PubsubMessage.newBuilder()
                 .setData(data)
                 .build()
@@ -53,11 +56,12 @@ class Publisher(private val topicName: String) {
         ApiFutures.addCallback(future, object : ApiFutureCallback<String> {
 
             override fun onFailure(throwable: Throwable) {
-                println(throwable)
+                LOGGER.error("Failed on publish with message: {}", throwable.message, throwable)
+                onFailureCallback()
             }
 
             override fun onSuccess(messageId: String) {
-                println("successful published $messageId")
+                LOGGER.info("successful published $messageId")
             }
         })
     }
