@@ -70,11 +70,10 @@ abstract class CompilerFleetMessageReceiver : MessageReceiver {
 private val LOGGER = LoggerFactory.getLogger("TaskReceiver")
 
 class TaskReceiver(tasksDirectory: String,
-                            resultTopic: String,
-                            private val callback: (message: String, filename: String) -> Unit
+                   private val resultPublisher: Publisher,
+                   private val callback: (message: String, filename: String) -> Unit
 ) : CompilerFleetMessageReceiver() {
     private val dockerProcessor = DockerProcessor(getDefaultDockerClient())
-    private val resultPublisher = Publisher(resultTopic)
     private val tasksDir: Path
 
     init {
@@ -171,6 +170,8 @@ fun main(args: Array<String>) {
         println("$message: $filename")
     }
 
-    val taskReceiver = TaskReceiver(tasksDir, resultTopic, printerCallback)
+    val publisher = Publisher(resultTopic)
+
+    val taskReceiver = TaskReceiver(tasksDir, publisher, printerCallback)
     SubscribeManager(subscriptionId, taskReceiver).subscribe()
 }

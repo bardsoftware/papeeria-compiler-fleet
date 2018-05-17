@@ -35,13 +35,13 @@ fun getResultData(taskId: String, statusCode: StatusCode, resultBytes: ByteArray
 
 private val LOGGER = LoggerFactory.getLogger("Publisher")
 
-class Publisher(private val topicName: String) {
+open class Publisher(private val topicName: String) {
     private val pubsubPublisher: Publisher
 
     init {
-        val project_id = ServiceOptions.getDefaultProjectId()
+        val projectId = ServiceOptions.getDefaultProjectId()
         val topicId = this.topicName
-        val serviceTopicName = TopicName.of(project_id, topicId)
+        val serviceTopicName = TopicName.of(projectId, topicId)
 
         this.pubsubPublisher = Publisher.newBuilder(serviceTopicName).build()
     }
