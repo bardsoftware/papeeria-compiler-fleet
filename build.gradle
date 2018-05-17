@@ -48,6 +48,14 @@ dependencies {
     //compile 'io.grpc:grpc-protobuf:1.+'
 }
 
+task runApp(type:JavaExec) {
+    main = "com.bardsoftware.backend.fleet.rmarkdown.CmdLineClientKt"
+    classpath = sourceSets.main.runtimeClasspath
+
+    /* Need to split the space-delimited value in the exec.args */
+    args System.getProperty("exec.args", "").split()
+}
+
 sourceSets {
     main {
         proto {
