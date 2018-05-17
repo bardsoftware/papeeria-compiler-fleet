@@ -40,7 +40,7 @@ class PublisherArgs(parser: ArgParser) {
     )
 }
 
-fun getRequestData(zipBytes: ByteArray, rootFileName: String, taskId: String): ByteString {
+fun getPublishData(zipBytes: ByteArray, rootFileName: String, taskId: String): ByteString {
     return CompilerFleet.CompilerFleetRequest.newBuilder()
             .setZipBytes(ByteString.copyFrom(zipBytes))
             .setRootFileName(rootFileName)

@@ -25,6 +25,9 @@ import com.google.pubsub.v1.TopicName
 import com.xenomachina.argparser.ArgParser
 import org.slf4j.LoggerFactory
 import java.io.File
+import java.security.MessageDigest
+
+
 
 fun getResultData(taskId: String, statusCode: StatusCode, resultBytes: ByteArray): ByteString {
     return CompilerFleet.CompilerFleetResult.newBuilder()
@@ -78,5 +81,9 @@ fun main(args: Array<String>) {
     val onFailureCallback = {
     }
 
-    Publisher(topic).publish(ByteString.copyFrom(zippedData), onFailureCallback)
+    val messageDigest = MessageDigest.getInstance("SHA-1")
+    val taskId = String(messageDigest.digest(zippedData))
+    val publishData = getPublishData(zippedData, parsedArgs.rootFileName, taskId)
+
+    Publisher(topic).publish(publishData, onFailureCallback)
 }
