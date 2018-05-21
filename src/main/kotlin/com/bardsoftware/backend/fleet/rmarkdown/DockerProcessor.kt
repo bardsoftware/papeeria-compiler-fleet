@@ -20,9 +20,12 @@ import com.spotify.docker.client.DockerClient
 import com.spotify.docker.client.messages.ContainerConfig
 import com.spotify.docker.client.messages.HostConfig
 import org.apache.commons.io.FilenameUtils
+import org.slf4j.LoggerFactory
 import java.io.File
 import java.nio.file.Paths
 
+
+private val LOGGER = LoggerFactory.getLogger("DockerProcessor")
 
 const val PDF_EXTENSION = ".pdf"
 
@@ -32,6 +35,8 @@ class DockerProcessor(private val docker: DockerClient) {
         var containerId: String? = null
         val fileName = rootFile.name
         val parentDir = rootFile.parentFile.absolutePath
+
+        LOGGER.info("Compiling {} filename", fileName)
 
         try {
             val hostConfig = HostConfig.builder()
@@ -52,8 +57,7 @@ class DockerProcessor(private val docker: DockerClient) {
             val compiledRmd = FilenameUtils.removeExtension(fileName) + PDF_EXTENSION
             return Paths.get(parentDir).resolve(compiledRmd).toFile()
         } catch (e: Exception) {
-            // TODO : log it after merging logging PR
-            e.printStackTrace()
+            LOGGER.error("failed to compile file: {}", e)
         } finally {
             containerId?.let {
                 this.docker.stopContainer(it, 0)
