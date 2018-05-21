@@ -153,10 +153,10 @@ class SubscribeManager(subscriptionId: String,
             subscriber.stopAsync()
         }
     }
+}
 
-    fun pushMessage(taskId: String, rootFileName: String, zipBytes: ByteString): File {
-        return (this.receiver as TaskReceiver).unzipCompileTask(taskId, rootFileName, zipBytes)
-    }
+fun subscribe(subscription: String, receiver: CompilerFleetMessageReceiver) {
+    SubscribeManager(subscription, receiver).subscribe()
 }
 
 fun main(args: Array<String>) {
@@ -171,5 +171,5 @@ fun main(args: Array<String>) {
     val publisher = Publisher(resultTopic)
 
     val taskReceiver = TaskReceiver(tasksDir, publisher, printerCallback)
-    SubscribeManager(subscriptionId, taskReceiver).subscribe()
+    subscribe(subscriptionId, taskReceiver)
 }
