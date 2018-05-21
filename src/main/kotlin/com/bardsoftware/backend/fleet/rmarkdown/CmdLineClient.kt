@@ -42,8 +42,8 @@ class PublisherArgs(parser: ArgParser) {
     )
 
     val resultTopic by parser.storing(
-            "--res", "--result-sub",
-            help = "subscri where pdf will be obtained"
+            "--result-sub",
+            help = "subscription where pdf will be obtained"
     )
 }
 
