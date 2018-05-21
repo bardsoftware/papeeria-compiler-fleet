@@ -23,7 +23,6 @@ import org.apache.commons.io.FilenameUtils
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.IOException
-import java.security.MessageDigest
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
 
