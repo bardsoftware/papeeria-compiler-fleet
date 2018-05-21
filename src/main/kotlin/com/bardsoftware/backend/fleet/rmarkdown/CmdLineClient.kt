@@ -22,12 +22,9 @@ import org.apache.commons.io.FileUtils
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.IOException
-import java.nio.file.Files
 import java.security.MessageDigest
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
-import java.nio.file.Paths
-
 
 
 class PublisherArgs(parser: ArgParser) {
@@ -42,6 +39,11 @@ class PublisherArgs(parser: ArgParser) {
     val publishTopic by parser.storing(
             "-t", "--publish-topic",
             help = "topic where zip will be published"
+    )
+
+    val resultTopic by parser.storing(
+            "--res", "--result-sub",
+            help = "subscri where pdf will be obtained"
     )
 }
 
@@ -82,12 +84,12 @@ fun zipDirectory(directory: File): ByteArray {
     return byteOutput.toByteArray()
 }
 
-class ResultReceiver() : CompilerFleetMessageReceiver() {
+class ResultReceiver : CompilerFleetMessageReceiver() {
     override fun processMessage(message: PubsubMessage) {
         val result = CompilerFleet.CompilerFleetResult.parseFrom(message.data)
 
-        val path = File(result.rootFileName)
-        FileUtils.writeByteArrayToFile(path, result.resultBytes.toByteArray())
+        val file = File(result.rootFileName)
+        FileUtils.writeByteArrayToFile(file, result.resultBytes.toByteArray())
     }
 }
 
@@ -105,4 +107,5 @@ fun main(args: Array<String>) {
     val publishData = getPublishData(zippedData, parsedArgs.rootFileName, taskId)
 
     Publisher(topic).publish(publishData, onFailureCallback)
+    SubscribeManager(parsedArgs.resultTopic, ResultReceiver()).subscribe()
 }

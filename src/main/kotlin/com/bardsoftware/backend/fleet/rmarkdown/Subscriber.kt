@@ -136,7 +136,7 @@ class TaskReceiver(tasksDirectory: String,
 }
 
 class SubscribeManager(subscriptionId: String,
-                       private val receiver: TaskReceiver) {
+                       private val receiver: CompilerFleetMessageReceiver) {
     private val subscriptionName = SubscriptionName.of(PROJECT_ID, subscriptionId)
 
     fun subscribe() {
@@ -155,7 +155,7 @@ class SubscribeManager(subscriptionId: String,
     }
 
     fun pushMessage(taskId: String, rootFileName: String, zipBytes: ByteString): File {
-        return this.receiver.unzipCompileTask(taskId, rootFileName, zipBytes)
+        return (this.receiver as TaskReceiver).unzipCompileTask(taskId, rootFileName, zipBytes)
     }
 }
 
@@ -166,7 +166,6 @@ fun main(args: Array<String>) {
     val resultTopic = parsedArgs.resultTopic
 
     val printerCallback = { message: String, filename: String? ->
-        println("$message: $filename")
     }
 
     val publisher = Publisher(resultTopic)
