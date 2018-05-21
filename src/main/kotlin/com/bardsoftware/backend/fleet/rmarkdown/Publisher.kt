@@ -23,7 +23,6 @@ import com.google.protobuf.ByteString
 import com.google.pubsub.v1.PubsubMessage
 import com.google.pubsub.v1.TopicName
 import org.apache.commons.io.FileUtils
-import org.apache.commons.io.FilenameUtils
 import org.slf4j.LoggerFactory
 import java.io.File
 
@@ -32,7 +31,7 @@ fun getResultData(taskId: String, statusCode: StatusCode, compiledFile: File): B
     return CompilerFleet.CompilerFleetResult.newBuilder()
             .setTaskId(taskId)
             .setResultBytes(ByteString.copyFrom(FileUtils.readFileToByteArray(compiledFile)))
-            .setRootFileName(FilenameUtils.removeExtension(compiledFile.name) + PDF_EXTENSION)
+            .setRootFileName(compiledFile.name)
             .setStatusCode(statusCode.ordinal)
             .build()
             .toByteString()

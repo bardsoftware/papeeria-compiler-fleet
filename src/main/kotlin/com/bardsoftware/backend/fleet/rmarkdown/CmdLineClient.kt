@@ -19,6 +19,7 @@ import com.google.protobuf.ByteString
 import com.google.pubsub.v1.PubsubMessage
 import com.xenomachina.argparser.ArgParser
 import org.apache.commons.io.FileUtils
+import org.apache.commons.io.FilenameUtils
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.IOException
@@ -41,7 +42,7 @@ class PublisherArgs(parser: ArgParser) {
             help = "topic where zip will be published"
     )
 
-    val resultTopic by parser.storing(
+    val resultSubscription by parser.storing(
             "--result-sub",
             help = "subscription where pdf will be obtained"
     )
@@ -88,7 +89,7 @@ class ResultReceiver : CompilerFleetMessageReceiver() {
     override fun processMessage(message: PubsubMessage) {
         val result = CompilerFleet.CompilerFleetResult.parseFrom(message.data)
 
-        val file = File(result.rootFileName)
+        val file = File(FilenameUtils.removeExtension(result.rootFileName) + PDF_EXTENSION)
         FileUtils.writeByteArrayToFile(file, result.resultBytes.toByteArray())
     }
 }
@@ -107,5 +108,5 @@ fun main(args: Array<String>) {
     val publishData = getPublishData(zippedData, parsedArgs.rootFileName, taskId)
 
     Publisher(topic).publish(publishData, onFailureCallback)
-    SubscribeManager(parsedArgs.resultTopic, ResultReceiver()).subscribe()
+    subscribe(parsedArgs.resultSubscription, ResultReceiver())
 }
