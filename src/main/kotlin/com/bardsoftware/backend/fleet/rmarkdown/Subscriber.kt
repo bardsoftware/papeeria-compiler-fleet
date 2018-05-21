@@ -25,7 +25,6 @@ import com.google.pubsub.v1.PubsubMessage
 import com.google.pubsub.v1.SubscriptionName
 import com.xenomachina.argparser.ArgParser
 import org.slf4j.LoggerFactory
-import org.apache.commons.io.FileUtils
 import java.io.ByteArrayInputStream
 import java.io.File
 import java.io.FileOutputStream
@@ -131,7 +130,7 @@ class TaskReceiver(tasksDirectory: String,
             LOGGER.info("Publish $taskId failed with code ${StatusCode.FAILURE}")
         }
 
-        val data = getResultData(taskId, StatusCode.SUCCESS, FileUtils.readFileToByteArray(compiledPdf))
+        val data = getResultData(taskId, StatusCode.SUCCESS, compiledPdf)
         resultPublisher.publish(data, onPublishFailureCallback)
     }
 }

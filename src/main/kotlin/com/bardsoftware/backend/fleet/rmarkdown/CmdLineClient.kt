@@ -22,9 +22,13 @@ import org.apache.commons.io.FileUtils
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.IOException
+import java.nio.file.Files
 import java.security.MessageDigest
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
+import java.nio.file.Paths
+
+
 
 class PublisherArgs(parser: ArgParser) {
     val directory by parser.storing(
@@ -82,8 +86,8 @@ class ResultReceiver() : CompilerFleetMessageReceiver() {
     override fun processMessage(message: PubsubMessage) {
         val result = CompilerFleet.CompilerFleetResult.parseFrom(message.data)
 
-        println(result.taskId)
-        println(String(result.resultBytes.toByteArray()))
+        val path = File(result.rootFileName)
+        FileUtils.writeByteArrayToFile(path, result.resultBytes.toByteArray())
     }
 }
 
