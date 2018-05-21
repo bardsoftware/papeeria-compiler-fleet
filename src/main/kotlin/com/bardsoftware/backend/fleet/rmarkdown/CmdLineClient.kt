@@ -103,8 +103,7 @@ fun main(args: Array<String>) {
     val onFailureCallback = {
     }
 
-    val messageDigest = MessageDigest.getInstance("SHA-1")
-    val taskId = String(messageDigest.digest(zippedData))
+    val taskId = getTaskId(zippedData)
     val publishData = getPublishData(zippedData, parsedArgs.rootFileName, taskId)
 
     Publisher(topic).publish(publishData, onFailureCallback)
