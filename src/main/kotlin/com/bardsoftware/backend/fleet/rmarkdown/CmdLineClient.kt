@@ -20,9 +20,11 @@ import com.google.pubsub.v1.PubsubMessage
 import com.xenomachina.argparser.ArgParser
 import org.apache.commons.io.FileUtils
 import org.apache.commons.io.FilenameUtils
+import org.slf4j.LoggerFactory
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.IOException
+import java.security.MessageDigest
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
 
@@ -84,9 +86,23 @@ fun zipDirectory(directory: File): ByteArray {
     return byteOutput.toByteArray()
 }
 
+fun getTaskId(data: ByteArray): String {
+    val messageDigest = MessageDigest.getInstance("SHA-1")
+
+    return String(messageDigest.digest(data))
+}
+
+private val LOGGER = LoggerFactory.getLogger("ResultReceiver")
+
 class ResultReceiver : CompilerFleetMessageReceiver() {
     override fun processMessage(message: PubsubMessage) {
         val result = CompilerFleet.CompilerFleetResult.parseFrom(message.data)
+
+        val expectedTaskId = getTaskId(result.resultBytes.toByteArray())
+        if (result.taskId != expectedTaskId) {
+            LOGGER.error("Task ids don't match: \nexpected:{}, \nactual:{}", expectedTaskId, result.taskId)
+            return
+        }
 
         val file = File(FilenameUtils.removeExtension(result.rootFileName) + PDF_EXTENSION)
         FileUtils.writeByteArrayToFile(file, result.resultBytes.toByteArray())

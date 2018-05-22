@@ -131,21 +131,9 @@ class TaskReceiver(tasksDirectory: String,
             LOGGER.info("Publish $taskId failed with code ${StatusCode.FAILURE}")
         }
 
-        val expectedTaskId = getTaskId(request.zipBytes.toByteArray())
-        if (taskId != expectedTaskId) {
-            LOGGER.error("Task ids don't match: \nexpacted:{}, \nactual:{}", expectedTaskId, taskId)
-            return
-        }
-
         val data = getResultData(taskId, StatusCode.SUCCESS, rootFile, compiledPdf)
         resultPublisher.publish(data, onPublishFailureCallback)
     }
-}
-
-fun getTaskId(data: ByteArray): String {
-    val messageDigest = MessageDigest.getInstance("SHA-1")
-
-    return String(messageDigest.digest(data))
 }
 
 fun subscribe(subscription: String, receiver: CompilerFleetMessageReceiver) {
