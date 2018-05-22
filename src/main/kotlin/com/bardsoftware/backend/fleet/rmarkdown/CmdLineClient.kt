@@ -98,7 +98,7 @@ class ResultReceiver : CompilerFleetMessageReceiver() {
     override fun processMessage(message: PubsubMessage) {
         val result = CompilerFleet.CompilerFleetResult.parseFrom(message.data)
 
-        val expectedTaskId = getTaskId(result.resultBytes.toByteArray())
+        val expectedTaskId = getTaskId(result.rootFileName.toByteArray())
         if (result.taskId != expectedTaskId) {
             LOGGER.error("Task ids don't match: \nexpected:{}, \nactual:{}", expectedTaskId, result.taskId)
             return
@@ -114,12 +114,13 @@ fun main(args: Array<String>) {
     val directory = parsedArgs.directory
     val zippedData = zipDirectory(File(directory))
     val topic = parsedArgs.publishTopic
+    val rootFileName = parsedArgs.rootFileName
 
     val onFailureCallback = {
     }
 
-    val taskId = getTaskId(zippedData)
-    val publishData = getPublishData(zippedData, parsedArgs.rootFileName, taskId)
+    val taskId = getTaskId(rootFileName.toByteArray())
+    val publishData = getPublishData(zippedData, rootFileName, taskId)
 
     Publisher(topic).publish(publishData, onFailureCallback)
     subscribe(parsedArgs.resultSubscription, ResultReceiver())
