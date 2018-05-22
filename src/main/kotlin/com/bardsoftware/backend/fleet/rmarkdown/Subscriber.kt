@@ -137,7 +137,7 @@ class TaskReceiver(tasksDirectory: String,
             return
         }
 
-        val data = getResultData(taskId, StatusCode.SUCCESS, compiledPdf)
+        val data = getResultData(taskId, StatusCode.SUCCESS, rootFile, compiledPdf)
         resultPublisher.publish(data, onPublishFailureCallback)
     }
 }
@@ -148,28 +148,20 @@ fun getTaskId(data: ByteArray): String {
     return String(messageDigest.digest(data))
 }
 
-class SubscribeManager(subscriptionId: String,
-                       private val receiver: CompilerFleetMessageReceiver) {
-    private val subscriptionName = SubscriptionName.of(PROJECT_ID, subscriptionId)
-
-    fun subscribe() {
-        val subscriber = Subscriber.newBuilder(this.subscriptionName, this.receiver).build()
-        val onShutdown = CompletableFuture<Any>()
-        Runtime.getRuntime().addShutdownHook(Thread(Runnable {
-            onShutdown.complete(null)
-        }))
-
-        try {
-            subscriber.startAsync().awaitRunning()
-            onShutdown.get()
-        } finally {
-            subscriber.stopAsync()
-        }
-    }
-}
-
 fun subscribe(subscription: String, receiver: CompilerFleetMessageReceiver) {
-    SubscribeManager(subscription, receiver).subscribe()
+    val subscriptionName = SubscriptionName.of(PROJECT_ID, subscription)
+    val subscriber = Subscriber.newBuilder(subscriptionName, receiver).build()
+    val onShutdown = CompletableFuture<Any>()
+    Runtime.getRuntime().addShutdownHook(Thread(Runnable {
+        onShutdown.complete(null)
+    }))
+
+    try {
+        subscriber.startAsync().awaitRunning()
+        onShutdown.get()
+    } finally {
+        subscriber.stopAsync()
+    }
 }
 
 fun main(args: Array<String>) {
