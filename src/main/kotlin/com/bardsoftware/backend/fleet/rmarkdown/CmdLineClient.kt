@@ -103,7 +103,7 @@ class ResultReceiver(
         val result = CompilerFleet.CompilerFleetResult.parseFrom(message.data)
 
         if (result.taskId != expectedTaskId) {
-            LOGGER.error("Task ids don't match: \nexpected:{}, \nactual:{}", expectedTaskId, result.taskId)
+            LOGGER.info("Task ids don't match: \nexpected:{}, \nactual:{}", expectedTaskId, result.taskId)
             return
         }
 
@@ -117,14 +117,13 @@ fun main(args: Array<String>) {
     val zippedData = zipDirectory(directory.toFile())
     val topic = parsedArgs.publishTopic
     val rootFileName = parsedArgs.rootFileName
-    val rootFile = directory.resolve(rootFileName).toFile()
 
     val onFailureCallback = {
     }
 
     val taskId = getTaskId(rootFileName.toByteArray())
     val publishData = getPublishData(zippedData, rootFileName, taskId)
-    val outputFile = File(FilenameUtils.removeExtension(rootFile.name) + PDF_EXTENSION)
+    val outputFile = File(FilenameUtils.removeExtension(rootFileName) + PDF_EXTENSION)
 
     Publisher(topic).publish(publishData, onFailureCallback)
     subscribe(parsedArgs.resultSubscription, ResultReceiver(outputFile, taskId))
