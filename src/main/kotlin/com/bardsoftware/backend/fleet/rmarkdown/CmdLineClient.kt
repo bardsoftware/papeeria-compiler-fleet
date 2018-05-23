@@ -95,11 +95,13 @@ fun getTaskId(data: ByteArray): String {
 
 private val LOGGER = LoggerFactory.getLogger("ResultReceiver")
 
-class ResultReceiver(private val rootFile: File) : CompilerFleetMessageReceiver() {
+class ResultReceiver(
+        private val rootFile: File,
+        private val expectedTaskId: String
+) : CompilerFleetMessageReceiver() {
     override fun processMessage(message: PubsubMessage) {
         val result = CompilerFleet.CompilerFleetResult.parseFrom(message.data)
 
-        val expectedTaskId = getTaskId(rootFile.name.toByteArray())
         if (result.taskId != expectedTaskId) {
             LOGGER.error("Task ids don't match: \nexpected:{}, \nactual:{}", expectedTaskId, result.taskId)
             return
@@ -125,5 +127,5 @@ fun main(args: Array<String>) {
     val publishData = getPublishData(zippedData, rootFileName, taskId)
 
     Publisher(topic).publish(publishData, onFailureCallback)
-    subscribe(parsedArgs.resultSubscription, ResultReceiver(rootFile))
+    subscribe(parsedArgs.resultSubscription, ResultReceiver(rootFile, taskId))
 }

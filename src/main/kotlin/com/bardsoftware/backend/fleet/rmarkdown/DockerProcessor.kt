@@ -36,7 +36,7 @@ class DockerProcessor(private val docker: DockerClient) {
         val fileName = rootFile.name
         val parentDir = rootFile.parentFile.absolutePath
 
-        LOGGER.info("Compiling {} filename", fileName)
+        LOGGER.info("Compiling project with {} root file name", fileName)
 
         try {
             val hostConfig = HostConfig.builder()
@@ -57,7 +57,7 @@ class DockerProcessor(private val docker: DockerClient) {
             val compiledRmd = FilenameUtils.removeExtension(fileName) + PDF_EXTENSION
             return Paths.get(parentDir).resolve(compiledRmd).toFile()
         } catch (e: Exception) {
-            LOGGER.error("failed to compile file: {}", e)
+            LOGGER.error("failed to compile file ", e)
         } finally {
             containerId?.let {
                 this.docker.stopContainer(it, 0)
