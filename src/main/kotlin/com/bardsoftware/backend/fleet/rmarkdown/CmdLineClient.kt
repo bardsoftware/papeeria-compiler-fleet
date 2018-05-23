@@ -108,6 +108,9 @@ class ResultReceiver(
         }
 
         FileUtils.writeByteArrayToFile(outputFile, result.resultBytes.toByteArray())
+
+        LOGGER.info("Result received and written into {}", outputFile.name)
+        System.exit(0)
         return true
     }
 }
