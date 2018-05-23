@@ -99,15 +99,16 @@ class ResultReceiver(
         private val outputFile: File,
         private val expectedTaskId: String
 ) : CompilerFleetMessageReceiver() {
-    override fun processMessage(message: PubsubMessage) {
+    override fun processMessage(message: PubsubMessage): Boolean {
         val result = CompilerFleet.CompilerFleetResult.parseFrom(message.data)
 
         if (result.taskId != expectedTaskId) {
             LOGGER.info("Task ids don't match: \nexpected:{}, \nactual:{}", expectedTaskId, result.taskId)
-            return
+            return false
         }
 
         FileUtils.writeByteArrayToFile(outputFile, result.resultBytes.toByteArray())
+        return true
     }
 }
 

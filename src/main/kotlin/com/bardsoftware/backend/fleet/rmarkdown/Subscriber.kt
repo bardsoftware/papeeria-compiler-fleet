@@ -59,11 +59,14 @@ private val PROJECT_ID = ServiceOptions.getDefaultProjectId()
 
 abstract class CompilerFleetMessageReceiver : MessageReceiver {
     override fun receiveMessage(message: PubsubMessage, consumer: AckReplyConsumer) {
-        processMessage(message)
-        consumer.ack()
+        val isProcessed = processMessage(message)
+
+        if (!isProcessed) {
+            consumer.ack()
+        }
     }
 
-    abstract fun processMessage(message: PubsubMessage)
+    abstract fun processMessage(message: PubsubMessage): Boolean
 }
 
 private val LOGGER = LoggerFactory.getLogger("TaskReceiver")
@@ -117,7 +120,7 @@ class TaskReceiver(tasksDirectory: String,
         return rootFile
     }
 
-    override fun processMessage(message: PubsubMessage) {
+    override fun processMessage(message: PubsubMessage): Boolean {
         val request = CompilerFleet.CompilerFleetRequest.parseFrom(message.data)
         val taskId = request.taskId
         val rootFileName = request.rootFileName
@@ -126,12 +129,16 @@ class TaskReceiver(tasksDirectory: String,
         val compiledPdf = dockerProcessor.compileRmdToPdf(rootFile)
         this.callback("Compiled pdf name: ", compiledPdf.name)
 
+        var isPublished = true
         val onPublishFailureCallback = {
             LOGGER.info("Publish $taskId failed with code ${StatusCode.FAILURE}")
+            isPublished = false
         }
 
         val data = getResultData(taskId, StatusCode.SUCCESS, compiledPdf)
         resultPublisher.publish(data, onPublishFailureCallback)
+
+        return isPublished
     }
 }
 
