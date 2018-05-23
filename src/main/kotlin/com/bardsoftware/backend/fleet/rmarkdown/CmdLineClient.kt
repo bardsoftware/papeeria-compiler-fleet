@@ -96,7 +96,7 @@ fun getTaskId(data: ByteArray): String {
 private val LOGGER = LoggerFactory.getLogger("ResultReceiver")
 
 class ResultReceiver(
-        private val rootFile: File,
+        private val outputFile: File,
         private val expectedTaskId: String
 ) : CompilerFleetMessageReceiver() {
     override fun processMessage(message: PubsubMessage) {
@@ -107,8 +107,7 @@ class ResultReceiver(
             return
         }
 
-        val file = File(FilenameUtils.removeExtension(rootFile.absolutePath) + PDF_EXTENSION)
-        FileUtils.writeByteArrayToFile(file, result.resultBytes.toByteArray())
+        FileUtils.writeByteArrayToFile(outputFile, result.resultBytes.toByteArray())
     }
 }
 
@@ -125,7 +124,8 @@ fun main(args: Array<String>) {
 
     val taskId = getTaskId(rootFileName.toByteArray())
     val publishData = getPublishData(zippedData, rootFileName, taskId)
+    val outputFile = File(FilenameUtils.removeExtension(rootFile.name) + PDF_EXTENSION)
 
     Publisher(topic).publish(publishData, onFailureCallback)
-    subscribe(parsedArgs.resultSubscription, ResultReceiver(rootFile, taskId))
+    subscribe(parsedArgs.resultSubscription, ResultReceiver(outputFile, taskId))
 }
