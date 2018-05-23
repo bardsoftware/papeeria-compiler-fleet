@@ -61,7 +61,7 @@ abstract class CompilerFleetMessageReceiver : MessageReceiver {
     override fun receiveMessage(message: PubsubMessage, consumer: AckReplyConsumer) {
         val isProcessed = processMessage(message)
 
-        if (!isProcessed) {
+        if (isProcessed) {
             consumer.ack()
         }
     }
