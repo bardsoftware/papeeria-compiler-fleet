@@ -24,6 +24,7 @@ import org.slf4j.LoggerFactory
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.IOException
+import java.nio.file.Paths
 import java.security.MessageDigest
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
@@ -94,27 +95,28 @@ fun getTaskId(data: ByteArray): String {
 
 private val LOGGER = LoggerFactory.getLogger("ResultReceiver")
 
-class ResultReceiver : CompilerFleetMessageReceiver() {
+class ResultReceiver(private val rootFile: File) : CompilerFleetMessageReceiver() {
     override fun processMessage(message: PubsubMessage) {
         val result = CompilerFleet.CompilerFleetResult.parseFrom(message.data)
 
-        val expectedTaskId = getTaskId(result.rootFileName.toByteArray())
+        val expectedTaskId = getTaskId(rootFile.name.toByteArray())
         if (result.taskId != expectedTaskId) {
             LOGGER.error("Task ids don't match: \nexpected:{}, \nactual:{}", expectedTaskId, result.taskId)
             return
         }
 
-        val file = File(FilenameUtils.removeExtension(result.rootFileName) + PDF_EXTENSION)
+        val file = File(FilenameUtils.removeExtension(rootFile.absolutePath) + PDF_EXTENSION)
         FileUtils.writeByteArrayToFile(file, result.resultBytes.toByteArray())
     }
 }
 
 fun main(args: Array<String>) {
     val parsedArgs = ArgParser(args).parseInto(::PublisherArgs)
-    val directory = parsedArgs.directory
-    val zippedData = zipDirectory(File(directory))
+    val directory = Paths.get(parsedArgs.directory)
+    val zippedData = zipDirectory(directory.toFile())
     val topic = parsedArgs.publishTopic
     val rootFileName = parsedArgs.rootFileName
+    val rootFile = directory.resolve(rootFileName).toFile()
 
     val onFailureCallback = {
     }
@@ -123,5 +125,5 @@ fun main(args: Array<String>) {
     val publishData = getPublishData(zippedData, rootFileName, taskId)
 
     Publisher(topic).publish(publishData, onFailureCallback)
-    subscribe(parsedArgs.resultSubscription, ResultReceiver())
+    subscribe(parsedArgs.resultSubscription, ResultReceiver(rootFile))
 }

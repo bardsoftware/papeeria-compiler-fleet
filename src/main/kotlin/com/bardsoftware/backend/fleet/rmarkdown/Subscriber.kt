@@ -31,7 +31,6 @@ import java.io.FileOutputStream
 import java.io.IOException
 import java.nio.file.Path
 import java.nio.file.Paths
-import java.security.MessageDigest
 import java.util.concurrent.CompletableFuture
 import java.util.zip.ZipEntry
 import java.util.zip.ZipInputStream
@@ -131,7 +130,7 @@ class TaskReceiver(tasksDirectory: String,
             LOGGER.info("Publish $taskId failed with code ${StatusCode.FAILURE}")
         }
 
-        val data = getResultData(taskId, StatusCode.SUCCESS, rootFile, compiledPdf)
+        val data = getResultData(taskId, StatusCode.SUCCESS, compiledPdf)
         resultPublisher.publish(data, onPublishFailureCallback)
     }
 }
