@@ -22,14 +22,16 @@ import com.google.cloud.pubsub.v1.Publisher
 import com.google.protobuf.ByteString
 import com.google.pubsub.v1.PubsubMessage
 import com.google.pubsub.v1.TopicName
+import org.apache.commons.io.FileUtils
 import org.slf4j.LoggerFactory
+import java.io.File
 
 
-fun getResultData(taskId: String, statusCode: StatusCode, resultBytes: ByteArray): ByteString {
+fun getResultData(taskId: String, statusCode: StatusCode, compiledFile: File): ByteString {
     return CompilerFleet.CompilerFleetResult.newBuilder()
             .setTaskId(taskId)
+            .setResultBytes(ByteString.copyFrom(FileUtils.readFileToByteArray(compiledFile)))
             .setStatusCode(statusCode.ordinal)
-            .setResultBytes(ByteString.copyFrom(resultBytes))
             .build()
             .toByteString()
 }

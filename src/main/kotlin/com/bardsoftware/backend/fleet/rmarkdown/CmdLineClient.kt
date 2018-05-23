@@ -19,12 +19,16 @@ import com.google.protobuf.ByteString
 import com.google.pubsub.v1.PubsubMessage
 import com.xenomachina.argparser.ArgParser
 import org.apache.commons.io.FileUtils
+import org.apache.commons.io.FilenameUtils
+import org.slf4j.LoggerFactory
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.IOException
+import java.nio.file.Paths
 import java.security.MessageDigest
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
+
 
 class PublisherArgs(parser: ArgParser) {
     val directory by parser.storing(
@@ -38,6 +42,11 @@ class PublisherArgs(parser: ArgParser) {
     val publishTopic by parser.storing(
             "-t", "--publish-topic",
             help = "topic where zip will be published"
+    )
+
+    val resultSubscription by parser.storing(
+            "--result-sub",
+            help = "subscription where pdf will be obtained"
     )
 }
 
@@ -78,27 +87,48 @@ fun zipDirectory(directory: File): ByteArray {
     return byteOutput.toByteArray()
 }
 
-class ResultReceiver() : CompilerFleetMessageReceiver() {
-    override fun processMessage(message: PubsubMessage) {
+fun getTaskId(data: ByteArray): String {
+    val messageDigest = MessageDigest.getInstance("SHA-1")
+
+    return String(messageDigest.digest(data))
+}
+
+private val LOGGER = LoggerFactory.getLogger("ResultReceiver")
+
+class ResultReceiver(
+        private val outputFile: File,
+        private val expectedTaskId: String
+) : CompilerFleetMessageReceiver() {
+    override fun processMessage(message: PubsubMessage): Boolean {
         val result = CompilerFleet.CompilerFleetResult.parseFrom(message.data)
 
-        println(result.taskId)
-        println(String(result.resultBytes.toByteArray()))
+        if (result.taskId != expectedTaskId) {
+            LOGGER.info("Task ids don't match: \nexpected:{}, \nactual:{}", expectedTaskId, result.taskId)
+            return false
+        }
+
+        FileUtils.writeByteArrayToFile(outputFile, result.resultBytes.toByteArray())
+
+        LOGGER.info("Result received and written into {}", outputFile.name)
+        System.exit(0)
+        return true
     }
 }
 
 fun main(args: Array<String>) {
     val parsedArgs = ArgParser(args).parseInto(::PublisherArgs)
-    val directory = parsedArgs.directory
-    val zippedData = zipDirectory(File(directory))
+    val directory = Paths.get(parsedArgs.directory)
+    val zippedData = zipDirectory(directory.toFile())
     val topic = parsedArgs.publishTopic
+    val rootFileName = parsedArgs.rootFileName
 
     val onFailureCallback = {
     }
 
-    val messageDigest = MessageDigest.getInstance("SHA-1")
-    val taskId = String(messageDigest.digest(zippedData))
-    val publishData = getPublishData(zippedData, parsedArgs.rootFileName, taskId)
+    val taskId = getTaskId(rootFileName.toByteArray())
+    val publishData = getPublishData(zippedData, rootFileName, taskId)
+    val outputFile = File(FilenameUtils.removeExtension(rootFileName) + PDF_EXTENSION)
 
     Publisher(topic).publish(publishData, onFailureCallback)
+    subscribe(parsedArgs.resultSubscription, ResultReceiver(outputFile, taskId))
 }

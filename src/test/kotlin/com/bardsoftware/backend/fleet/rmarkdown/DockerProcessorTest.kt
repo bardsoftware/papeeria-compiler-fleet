@@ -18,15 +18,9 @@ package com.bardsoftware.backend.fleet.rmarkdown
 import com.spotify.docker.client.DockerClient
 import com.spotify.docker.client.messages.ContainerConfig
 import com.spotify.docker.client.messages.ContainerCreation
-import org.junit.Before
 import org.junit.Test
-import org.junit.runner.RunWith
-import org.mockito.InjectMocks
 import org.mockito.Matchers.any
-import org.mockito.Mock
 import org.mockito.Mockito.*
-import org.mockito.MockitoAnnotations
-import org.mockito.runners.MockitoJUnitRunner
 import java.io.File
 
 

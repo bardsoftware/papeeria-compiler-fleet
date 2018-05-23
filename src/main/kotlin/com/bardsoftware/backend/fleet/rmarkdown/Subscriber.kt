@@ -25,7 +25,6 @@ import com.google.pubsub.v1.PubsubMessage
 import com.google.pubsub.v1.SubscriptionName
 import com.xenomachina.argparser.ArgParser
 import org.slf4j.LoggerFactory
-import org.apache.commons.io.FileUtils
 import java.io.ByteArrayInputStream
 import java.io.File
 import java.io.FileOutputStream
@@ -60,11 +59,14 @@ private val PROJECT_ID = ServiceOptions.getDefaultProjectId()
 
 abstract class CompilerFleetMessageReceiver : MessageReceiver {
     override fun receiveMessage(message: PubsubMessage, consumer: AckReplyConsumer) {
-        processMessage(message)
-        consumer.ack()
+        val isProcessed = processMessage(message)
+
+        if (isProcessed) {
+            consumer.ack()
+        }
     }
 
-    abstract fun processMessage(message: PubsubMessage)
+    abstract fun processMessage(message: PubsubMessage): Boolean
 }
 
 private val LOGGER = LoggerFactory.getLogger("TaskReceiver")
@@ -118,7 +120,7 @@ class TaskReceiver(tasksDirectory: String,
         return rootFile
     }
 
-    override fun processMessage(message: PubsubMessage) {
+    override fun processMessage(message: PubsubMessage): Boolean {
         val request = CompilerFleet.CompilerFleetRequest.parseFrom(message.data)
         val taskId = request.taskId
         val rootFileName = request.rootFileName
@@ -127,36 +129,32 @@ class TaskReceiver(tasksDirectory: String,
         val compiledPdf = dockerProcessor.compileRmdToPdf(rootFile)
         this.callback("Compiled pdf name: ", compiledPdf.name)
 
+        var isPublished = true
         val onPublishFailureCallback = {
             LOGGER.info("Publish $taskId failed with code ${StatusCode.FAILURE}")
+            isPublished = false
         }
 
-        val data = getResultData(taskId, StatusCode.SUCCESS, FileUtils.readFileToByteArray(compiledPdf))
+        val data = getResultData(taskId, StatusCode.SUCCESS, compiledPdf)
         resultPublisher.publish(data, onPublishFailureCallback)
+
+        return isPublished
     }
 }
 
-class SubscribeManager(subscriptionId: String,
-                       private val receiver: TaskReceiver) {
-    private val subscriptionName = SubscriptionName.of(PROJECT_ID, subscriptionId)
+fun subscribe(subscription: String, receiver: CompilerFleetMessageReceiver) {
+    val subscriptionName = SubscriptionName.of(PROJECT_ID, subscription)
+    val subscriber = Subscriber.newBuilder(subscriptionName, receiver).build()
+    val onShutdown = CompletableFuture<Any>()
+    Runtime.getRuntime().addShutdownHook(Thread(Runnable {
+        onShutdown.complete(null)
+    }))
 
-    fun subscribe() {
-        val subscriber = Subscriber.newBuilder(this.subscriptionName, this.receiver).build()
-        val onShutdown = CompletableFuture<Any>()
-        Runtime.getRuntime().addShutdownHook(Thread(Runnable {
-            onShutdown.complete(null)
-        }))
-
-        try {
-            subscriber.startAsync().awaitRunning()
-            onShutdown.get()
-        } finally {
-            subscriber.stopAsync()
-        }
-    }
-
-    fun pushMessage(taskId: String, rootFileName: String, zipBytes: ByteString): File {
-        return this.receiver.unzipCompileTask(taskId, rootFileName, zipBytes)
+    try {
+        subscriber.startAsync().awaitRunning()
+        onShutdown.get()
+    } finally {
+        subscriber.stopAsync()
     }
 }
 
@@ -167,11 +165,10 @@ fun main(args: Array<String>) {
     val resultTopic = parsedArgs.resultTopic
 
     val printerCallback = { message: String, filename: String? ->
-        println("$message: $filename")
     }
 
     val publisher = Publisher(resultTopic)
 
     val taskReceiver = TaskReceiver(tasksDir, publisher, printerCallback)
-    SubscribeManager(subscriptionId, taskReceiver).subscribe()
+    subscribe(subscriptionId, taskReceiver)
 }

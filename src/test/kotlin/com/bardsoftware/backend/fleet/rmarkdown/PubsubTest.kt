@@ -55,8 +55,7 @@ class PubsubTest {
 
         val publisher = mock(Publisher::class.java)
         val taskReceiver = TaskReceiver(tasksDir, publisher, mockCallback)
-        val manager = SubscribeManager("", taskReceiver)
-        val rootFile = manager.pushMessage(taskId, rootFileName, zipBytes)
+        val rootFile = taskReceiver.unzipCompileTask(taskId, rootFileName, zipBytes)
         assertEquals(rootFileName, rootFile.name)
     }
 
