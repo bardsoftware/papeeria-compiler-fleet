@@ -115,6 +115,14 @@ class ResultReceiver(
     }
 }
 
+fun publishTask(topic: String, rootFileName: String, zippedData: ByteArray): String {
+    val taskId = getTaskId(rootFileName.toByteArray())
+    val publishData = getPublishData(zippedData, rootFileName, taskId)
+
+    Publisher(topic).publish(publishData, {})
+    return taskId
+}
+
 fun main(args: Array<String>) {
     val parsedArgs = ArgParser(args).parseInto(::PublisherArgs)
     val directory = Paths.get(parsedArgs.directory)
@@ -122,13 +130,7 @@ fun main(args: Array<String>) {
     val topic = parsedArgs.publishTopic
     val rootFileName = parsedArgs.rootFileName
 
-    val onFailureCallback = {
-    }
-
-    val taskId = getTaskId(rootFileName.toByteArray())
-    val publishData = getPublishData(zippedData, rootFileName, taskId)
     val outputFile = File(FilenameUtils.removeExtension(rootFileName) + PDF_EXTENSION)
-
-    Publisher(topic).publish(publishData, onFailureCallback)
+    val taskId = publishTask(topic, rootFileName, zippedData)
     subscribe(parsedArgs.resultSubscription, ResultReceiver(outputFile, taskId))
 }
