@@ -68,8 +68,9 @@ sourceSets {
 }
 
 task makeJar(type: Jar) {
-    baseName = 'compiler-fleet-proto'
-    from('src/generated/main/java')
+    from ('src/main/proto')
+    archiveName = 'compiler-fleet-proto.jar'
+    with jar
 }
 
 protobuf {
