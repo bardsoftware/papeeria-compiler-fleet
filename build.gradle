@@ -65,6 +65,16 @@ sourceSets {
             srcDirs 'src/main/java', 'src/generated/main/java'
         }
     }
+
+    generated {
+        java.srcDir "${buildDir}/classes/java/main"
+    }
+}
+
+task makeJar(type: Jar) {
+    baseName = 'compiler-fleet-proto'
+    from sourceSets.generated.allSource
+    with jar
 }
 
 protobuf {
