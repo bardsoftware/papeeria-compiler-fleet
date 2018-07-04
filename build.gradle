@@ -67,11 +67,6 @@ sourceSets {
     }
 }
 
-task makeJar(type: Jar) {
-    from ('src/main/proto')
-    archiveName = 'compiler-fleet-proto.jar'
-    with jar
-}
 
 protobuf {
     protoc {
@@ -85,6 +80,13 @@ compileKotlin {
 }
 compileTestKotlin {
     kotlinOptions.jvmTarget = "1.8"
+}
+
+task makeJar(type: Jar) {
+    dependsOn 'generateProto'
+    dependsOn compileJava
+    from ('build/classes/java/main')
+    archiveName = 'compiler-fleet-proto.jar'
 }
 
 mainClassName = 'com.bardsoftware.backend.fleet.rmarkdown.SubscriberKt'
