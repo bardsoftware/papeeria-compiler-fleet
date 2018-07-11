@@ -56,7 +56,6 @@ enum class StatusCode {
 }
 
 private val PROJECT_ID = ServiceOptions.getDefaultProjectId()
-private val MOCK_PDF_FILE = Paths.get("src","main","resources", "example.pdf").toFile()
 
 abstract class CompilerFleetMessageReceiver : MessageReceiver {
     override fun receiveMessage(message: PubsubMessage, consumer: AckReplyConsumer) {
@@ -76,6 +75,8 @@ class TaskReceiver(tasksDirectory: String,
                    private val resultPublisher: Publisher
 ) : CompilerFleetMessageReceiver() {
     private val tasksDir: Path
+    private val dockerProcessor = DockerProcessor(getDefaultDockerClient())
+    private val MOCK_PDF_FILE = File(TaskReceiver::class.java.classLoader.getResource("example.pdf").file)
 
     init {
         val directoryPath = Paths.get(tasksDirectory)
@@ -128,9 +129,8 @@ class TaskReceiver(tasksDirectory: String,
             return MOCK_PDF_FILE
         }
 
-        // TODO: Unzip project and compile via docker
-        val notMock = MOCK_PDF_FILE
-        return notMock
+        val rootFile = unzipCompileTask(request.taskId, rootFileFullPath, zippedProject)
+        return dockerProcessor.compileRmdToPdf(rootFile)
     }
 
     override fun processMessage(message: PubsubMessage): Boolean {
