@@ -119,18 +119,24 @@ class TaskReceiver(tasksDirectory: String,
         return rootFile
     }
 
-    private fun compileProject(rootFileFullPath: String, zippedProject: ByteString): File {
-        // TODO: Unzip project and compile via docker
+    private fun compileProject(request: CompilerFleet.CompilerFleetRequest): File {
+        val rootFileFullPath = request.rootFileName
+        val zippedProject = request.zipBytes
+        val engine = request.engine
 
+        if (request.compiler == CompilerFleet.Compiler.MOCK) {
+            return MOCK_PDF_FILE
+        }
+
+        // TODO: Unzip project and compile via docker
+        val notMock = MOCK_PDF_FILE
         return MOCK_PDF_FILE
     }
 
     override fun processMessage(message: PubsubMessage): Boolean {
         val request = CompilerFleet.CompilerFleetRequest.parseFrom(message.data)
         val taskId = request.taskId
-        val rootFileName = request.rootFileName
-        val zippedProject = request.zipBytes
-        val compiledPdf = compileProject(rootFileName, zippedProject)
+        val compiledPdf = compileProject(request)
 
         var isPublished = true
         val onPublishFailureCallback = {
