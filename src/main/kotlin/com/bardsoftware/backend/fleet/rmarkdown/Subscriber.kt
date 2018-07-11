@@ -15,6 +15,7 @@
  */
 package com.bardsoftware.backend.fleet.rmarkdown
 
+import com.google.api.client.util.ByteStreams
 import com.google.cloud.ServiceOptions
 import com.google.cloud.pubsub.v1.AckReplyConsumer
 import com.google.cloud.pubsub.v1.MessageReceiver
@@ -24,11 +25,15 @@ import com.google.pubsub.v1.PubsubMessage
 import com.google.pubsub.v1.SubscriptionName
 import com.xenomachina.argparser.ArgParser
 import org.slf4j.LoggerFactory
+import java.io.ByteArrayInputStream
 import java.io.File
+import java.io.FileOutputStream
 import java.io.IOException
 import java.nio.file.Path
 import java.nio.file.Paths
 import java.util.concurrent.CompletableFuture
+import java.util.zip.ZipEntry
+import java.util.zip.ZipInputStream
 
 class SubscriberArgs(parser: ArgParser) {
     val subscription by parser.storing(
@@ -83,6 +88,35 @@ class TaskReceiver(tasksDirectory: String,
         }
 
         this.tasksDir = directoryPath
+    }
+
+    fun unzipCompileTask(taskId: String, rootFileName: String, zipBytes: ByteString): File {
+        val destination = this.tasksDir.resolve(taskId).resolve("files")
+        val zipStream = ZipInputStream(ByteArrayInputStream(zipBytes.toByteArray()))
+        var entry: ZipEntry? = zipStream.nextEntry
+
+        while (entry != null) {
+            val filename = entry.name
+            val newFile = destination.resolve(filename).toFile()
+
+            if (!newFile.parentFile.exists() && !newFile.parentFile.mkdirs()) {
+                val dirName = newFile.parentFile.name
+                throw IOException("In task(id = $taskId): unable to create $dirName directory while unzipping")
+            }
+
+            FileOutputStream(newFile).use {
+                ByteStreams.copy(zipStream, it)
+            }
+
+            entry = zipStream.nextEntry
+        }
+
+        val rootFile = destination.resolve(rootFileName).toFile()
+        if (!rootFile.exists()) {
+            throw IOException("In task(id = $taskId): path to root file doesn't exists")
+        }
+
+        return rootFile
     }
 
     private fun compileProject(rootFileFullPath: String, zippedProject: ByteString): File {
