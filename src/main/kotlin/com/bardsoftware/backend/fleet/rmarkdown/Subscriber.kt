@@ -130,7 +130,7 @@ class TaskReceiver(tasksDirectory: String,
 
         // TODO: Unzip project and compile via docker
         val notMock = MOCK_PDF_FILE
-        return MOCK_PDF_FILE
+        return notMock
     }
 
     override fun processMessage(message: PubsubMessage): Boolean {
