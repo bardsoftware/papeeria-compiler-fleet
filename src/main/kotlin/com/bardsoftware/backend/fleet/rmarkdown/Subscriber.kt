@@ -24,11 +24,9 @@ import com.google.protobuf.ByteString
 import com.google.pubsub.v1.PubsubMessage
 import com.google.pubsub.v1.SubscriptionName
 import com.xenomachina.argparser.ArgParser
+import org.apache.commons.io.FileUtils
 import org.slf4j.LoggerFactory
-import java.io.ByteArrayInputStream
-import java.io.File
-import java.io.FileOutputStream
-import java.io.IOException
+import java.io.*
 import java.nio.file.Path
 import java.nio.file.Paths
 import java.util.concurrent.CompletableFuture
@@ -76,7 +74,7 @@ class TaskReceiver(tasksDirectory: String,
 ) : CompilerFleetMessageReceiver() {
     private val tasksDir: Path
     private val dockerProcessor = DockerProcessor(getDefaultDockerClient())
-    private val MOCK_PDF_FILE = File(TaskReceiver::class.java.classLoader.getResource("example.pdf").file)
+    private val MOCK_PDF_BYTES = TaskReceiver::class.java.classLoader.getResourceAsStream("example.pdf").readBytes()
 
     init {
         val directoryPath = Paths.get(tasksDirectory)
@@ -125,10 +123,6 @@ class TaskReceiver(tasksDirectory: String,
         val zippedProject = request.zipBytes
         val engine = request.engine
 
-        if (request.compiler == CompilerFleet.Compiler.MOCK) {
-            return MOCK_PDF_FILE
-        }
-
         val rootFile = unzipCompileTask(request.taskId, rootFileFullPath, zippedProject)
         return dockerProcessor.compileRmdToPdf(rootFile)
     }
@@ -136,15 +130,21 @@ class TaskReceiver(tasksDirectory: String,
     override fun processMessage(message: PubsubMessage): Boolean {
         val request = CompilerFleet.CompilerFleetRequest.parseFrom(message.data)
         val taskId = request.taskId
-        val compiledPdf = compileProject(request)
-
         var isPublished = true
+
+        val compiledBytes = if (request.compiler == CompilerFleet.Compiler.MOCK) {
+            ByteString.copyFrom(MOCK_PDF_BYTES)
+        } else {
+            val compiledFileBytes = FileUtils.readFileToByteArray(compileProject(request))
+            ByteString.copyFrom(compiledFileBytes)
+        }
+
         val onPublishFailureCallback = {
             LOGGER.info("Publish $taskId failed with code ${StatusCode.FAILURE}")
             isPublished = false
         }
 
-        val data = getResultData(taskId, StatusCode.SUCCESS, compiledPdf)
+        val data = getResultData(taskId, StatusCode.SUCCESS, compiledBytes)
         resultPublisher.publish(data, onPublishFailureCallback)
 
         return isPublished
