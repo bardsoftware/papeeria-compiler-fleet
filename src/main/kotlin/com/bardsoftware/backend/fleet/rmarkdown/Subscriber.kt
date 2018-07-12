@@ -15,20 +15,18 @@
  */
 package com.bardsoftware.backend.fleet.rmarkdown
 
+import com.google.api.client.util.ByteStreams
 import com.google.cloud.ServiceOptions
 import com.google.cloud.pubsub.v1.AckReplyConsumer
 import com.google.cloud.pubsub.v1.MessageReceiver
 import com.google.cloud.pubsub.v1.Subscriber
-import com.google.common.io.ByteStreams
 import com.google.protobuf.ByteString
 import com.google.pubsub.v1.PubsubMessage
 import com.google.pubsub.v1.SubscriptionName
 import com.xenomachina.argparser.ArgParser
+import org.apache.commons.io.FileUtils
 import org.slf4j.LoggerFactory
-import java.io.ByteArrayInputStream
-import java.io.File
-import java.io.FileOutputStream
-import java.io.IOException
+import java.io.*
 import java.nio.file.Path
 import java.nio.file.Paths
 import java.util.concurrent.CompletableFuture
@@ -36,7 +34,7 @@ import java.util.zip.ZipEntry
 import java.util.zip.ZipInputStream
 
 class SubscriberArgs(parser: ArgParser) {
-    val subscriberName by parser.storing(
+    val subscription by parser.storing(
             "--sub",
             help = "subscription topic name")
 
@@ -72,11 +70,11 @@ abstract class CompilerFleetMessageReceiver : MessageReceiver {
 private val LOGGER = LoggerFactory.getLogger("TaskReceiver")
 
 class TaskReceiver(tasksDirectory: String,
-                   private val resultPublisher: Publisher,
-                   private val callback: (message: String, filename: String) -> Unit
+                   private val resultPublisher: Publisher
 ) : CompilerFleetMessageReceiver() {
-    private val dockerProcessor = DockerProcessor(getDefaultDockerClient())
     private val tasksDir: Path
+    private val dockerProcessor = DockerProcessor(getDefaultDockerClient())
+    private val MOCK_PDF_BYTES = TaskReceiver::class.java.classLoader.getResourceAsStream("example.pdf").readBytes()
 
     init {
         val directoryPath = Paths.get(tasksDirectory)
@@ -116,26 +114,37 @@ class TaskReceiver(tasksDirectory: String,
         if (!rootFile.exists()) {
             throw IOException("In task(id = $taskId): path to root file doesn't exists")
         }
-      
+
         return rootFile
+    }
+
+    private fun compileProject(request: CompilerFleet.CompilerFleetRequest): File {
+        val rootFileFullPath = request.rootFileName
+        val zippedProject = request.zipBytes
+        val engine = request.engine
+
+        val rootFile = unzipCompileTask(request.taskId, rootFileFullPath, zippedProject)
+        return dockerProcessor.compileRmdToPdf(rootFile)
     }
 
     override fun processMessage(message: PubsubMessage): Boolean {
         val request = CompilerFleet.CompilerFleetRequest.parseFrom(message.data)
         val taskId = request.taskId
-        val rootFileName = request.rootFileName
-        val zipBytes = request.zipBytes
-        val rootFile = unzipCompileTask(taskId, rootFileName, zipBytes)
-        val compiledPdf = dockerProcessor.compileRmdToPdf(rootFile)
-        this.callback("Compiled pdf name: ", compiledPdf.name)
-
         var isPublished = true
+
+        val compiledBytes = if (request.compiler == CompilerFleet.Compiler.MOCK) {
+            ByteString.copyFrom(MOCK_PDF_BYTES)
+        } else {
+            val compiledFileBytes = FileUtils.readFileToByteArray(compileProject(request))
+            ByteString.copyFrom(compiledFileBytes)
+        }
+
         val onPublishFailureCallback = {
             LOGGER.info("Publish $taskId failed with code ${StatusCode.FAILURE}")
             isPublished = false
         }
 
-        val data = getResultData(taskId, StatusCode.SUCCESS, compiledPdf)
+        val data = getResultData(taskId, StatusCode.SUCCESS, compiledBytes)
         resultPublisher.publish(data, onPublishFailureCallback)
 
         return isPublished
@@ -160,15 +169,12 @@ fun subscribe(subscription: String, receiver: CompilerFleetMessageReceiver) {
 
 fun main(args: Array<String>) {
     val parsedArgs = ArgParser(args).parseInto(::SubscriberArgs)
-    val subscriptionId = parsedArgs.subscriberName
+    val subscriptionId = parsedArgs.subscription
     val tasksDir = parsedArgs.tasksDir
     val resultTopic = parsedArgs.resultTopic
 
-    val printerCallback = { message: String, filename: String? ->
-    }
-
     val publisher = Publisher(resultTopic)
 
-    val taskReceiver = TaskReceiver(tasksDir, publisher, printerCallback)
+    val taskReceiver = TaskReceiver(tasksDir, publisher)
     subscribe(subscriptionId, taskReceiver)
 }

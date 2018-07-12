@@ -27,10 +27,10 @@ import org.slf4j.LoggerFactory
 import java.io.File
 
 
-fun getResultData(taskId: String, statusCode: StatusCode, compiledFile: File): ByteString {
+fun getResultData(taskId: String, statusCode: StatusCode, compiledBytes: ByteString): ByteString {
     return CompilerFleet.CompilerFleetResult.newBuilder()
             .setTaskId(taskId)
-            .setResultBytes(ByteString.copyFrom(FileUtils.readFileToByteArray(compiledFile)))
+            .setResultBytes(compiledBytes)
             .setStatusCode(statusCode.ordinal)
             .build()
             .toByteString()

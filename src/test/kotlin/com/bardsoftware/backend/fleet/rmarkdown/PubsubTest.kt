@@ -50,11 +50,8 @@ class PubsubTest {
                 .build()
                 .writeTo(byteOutputObj)
 
-        val mockCallback = { _: String, _: String ->
-        }
-
         val publisher = mock(Publisher::class.java)
-        val taskReceiver = TaskReceiver(tasksDir, publisher, mockCallback)
+        val taskReceiver = TaskReceiver(tasksDir, publisher)
         val rootFile = taskReceiver.unzipCompileTask(taskId, rootFileName, zipBytes)
         assertEquals(rootFileName, rootFile.name)
     }
