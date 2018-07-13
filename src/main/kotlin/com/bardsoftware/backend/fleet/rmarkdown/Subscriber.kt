@@ -15,23 +15,11 @@
  */
 package com.bardsoftware.backend.fleet.rmarkdown
 
-import com.google.api.client.util.ByteStreams
 import com.google.cloud.ServiceOptions
-import com.google.cloud.pubsub.v1.AckReplyConsumer
-import com.google.cloud.pubsub.v1.MessageReceiver
 import com.google.cloud.pubsub.v1.Subscriber
-import com.google.protobuf.ByteString
-import com.google.pubsub.v1.PubsubMessage
 import com.google.pubsub.v1.SubscriptionName
 import com.xenomachina.argparser.ArgParser
-import org.apache.commons.io.FileUtils
-import org.slf4j.LoggerFactory
-import java.io.*
-import java.nio.file.Path
-import java.nio.file.Paths
 import java.util.concurrent.CompletableFuture
-import java.util.zip.ZipEntry
-import java.util.zip.ZipInputStream
 
 class SubscriberArgs(parser: ArgParser) {
     val subscription by parser.storing(
@@ -47,6 +35,18 @@ class SubscriberArgs(parser: ArgParser) {
             "--tasks-dir",
             help = "root of tasks content"
     )
+
+    val host by parser.storing(
+            "hostname",
+            help = "texbe hostname"
+    )
+
+    val port by parser.storing(
+            "port",
+            help = "texbe port"
+    ) {
+        toInt()
+    }
 }
 
 enum class StatusCode {
@@ -54,102 +54,6 @@ enum class StatusCode {
 }
 
 private val PROJECT_ID = ServiceOptions.getDefaultProjectId()
-
-abstract class CompilerFleetMessageReceiver : MessageReceiver {
-    override fun receiveMessage(message: PubsubMessage, consumer: AckReplyConsumer) {
-        val isProcessed = processMessage(message)
-
-        if (isProcessed) {
-            consumer.ack()
-        }
-    }
-
-    abstract fun processMessage(message: PubsubMessage): Boolean
-}
-
-private val LOGGER = LoggerFactory.getLogger("TaskReceiver")
-
-class TaskReceiver(tasksDirectory: String,
-                   private val resultPublisher: Publisher
-) : CompilerFleetMessageReceiver() {
-    private val tasksDir: Path
-    private val dockerProcessor = DockerProcessor(getDefaultDockerClient())
-    private val MOCK_PDF_BYTES = TaskReceiver::class.java.classLoader.getResourceAsStream("example.pdf").readBytes()
-
-    init {
-        val directoryPath = Paths.get(tasksDirectory)
-        val directoryFile = directoryPath.toFile()
-        val directoryName = directoryFile.name
-
-        directoryExistingCheck(directoryFile)
-        if (!directoryFile.canWrite()) {
-            throw IOException("tasksDir directory(name is $directoryName) isn't writable")
-        }
-
-        this.tasksDir = directoryPath
-    }
-
-    fun unzipCompileTask(taskId: String, rootFileName: String, zipBytes: ByteString): File {
-        val destination = this.tasksDir.resolve(taskId).resolve("files")
-        val zipStream = ZipInputStream(ByteArrayInputStream(zipBytes.toByteArray()))
-        var entry: ZipEntry? = zipStream.nextEntry
-
-        while (entry != null) {
-            val filename = entry.name
-            val newFile = destination.resolve(filename).toFile()
-
-            if (!newFile.parentFile.exists() && !newFile.parentFile.mkdirs()) {
-                val dirName = newFile.parentFile.name
-                throw IOException("In task(id = $taskId): unable to create $dirName directory while unzipping")
-            }
-
-            FileOutputStream(newFile).use {
-                ByteStreams.copy(zipStream, it)
-            }
-
-            entry = zipStream.nextEntry
-        }
-
-        val rootFile = destination.resolve(rootFileName).toFile()
-        if (!rootFile.exists()) {
-            throw IOException("In task(id = $taskId): path to root file doesn't exists")
-        }
-
-        return rootFile
-    }
-
-    private fun compileProject(request: CompilerFleet.CompilerFleetRequest): File {
-        val rootFileFullPath = request.rootFileName
-        val zippedProject = request.zipBytes
-        val engine = request.engine
-
-        val rootFile = unzipCompileTask(request.taskId, rootFileFullPath, zippedProject)
-        return dockerProcessor.compileRmdToPdf(rootFile)
-    }
-
-    override fun processMessage(message: PubsubMessage): Boolean {
-        val request = CompilerFleet.CompilerFleetRequest.parseFrom(message.data)
-        val taskId = request.taskId
-        var isPublished = true
-
-        val compiledBytes = if (request.compiler == CompilerFleet.Compiler.MOCK) {
-            ByteString.copyFrom(MOCK_PDF_BYTES)
-        } else {
-            val compiledFileBytes = FileUtils.readFileToByteArray(compileProject(request))
-            ByteString.copyFrom(compiledFileBytes)
-        }
-
-        val onPublishFailureCallback = {
-            LOGGER.info("Publish $taskId failed with code ${StatusCode.FAILURE}")
-            isPublished = false
-        }
-
-        val data = getResultData(taskId, StatusCode.SUCCESS, compiledBytes)
-        resultPublisher.publish(data, onPublishFailureCallback)
-
-        return isPublished
-    }
-}
 
 fun subscribe(subscription: String, receiver: CompilerFleetMessageReceiver) {
     val subscriptionName = SubscriptionName.of(PROJECT_ID, subscription)
@@ -175,6 +79,6 @@ fun main(args: Array<String>) {
 
     val publisher = Publisher(resultTopic)
 
-    val taskReceiver = TaskReceiver(tasksDir, publisher)
+    val taskReceiver = ConvertingTaskReceiver(parsedArgs.host, parsedArgs.port, tasksDir, publisher)
     subscribe(subscriptionId, taskReceiver)
 }
