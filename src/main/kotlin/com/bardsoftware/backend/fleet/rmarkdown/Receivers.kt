@@ -146,7 +146,6 @@ class MarkdownTaskReceiver(
         resultPublisher: Publisher) : TaskReceiver(tasksDirectory, resultPublisher) {
 
     private val texbeCompilerStub: TexbeGrpc.TexbeBlockingStub
-    private val COMPILE_DIR = File("/compile")
 
     init {
         val channel = ManagedChannelBuilder.forTarget(texbeAddress).build()
@@ -162,7 +161,7 @@ class MarkdownTaskReceiver(
         var isPublished = true
 
         val onPublishFailureCallback = {
-            LOGGER.info("Publish $taskId failed with code ${StatusCode.SUCCESS}")
+            LOGGER.info("Publish $taskId failed with code ${StatusCode.FAILURE}")
             isPublished = false
         }
 
@@ -173,12 +172,7 @@ class MarkdownTaskReceiver(
     }
 
     private fun fetchProjectFiles(request: CompileRequest) {
-        val fetchRequest = CompileRequest
-            .newBuilder()
-            .mergeFrom(request)
-            .setEngine(Engine.NONE)
-            .build()
-
+        val fetchRequest = request.toBuilder().setEngine(Engine.NONE).build()
         texbeCompilerStub.compile(fetchRequest)
     }
 
@@ -186,7 +180,7 @@ class MarkdownTaskReceiver(
     private fun convertMarkdown(request: CompileRequest) {
         val outputFileName = Files.getNameWithoutExtension(request.mainFileName) + ".tex"
         val mainFile = this.tasksDir.resolve(request.id).resolve("files")
-        runCommandLine("pandoc $mainFile -o ${COMPILE_DIR.resolve(outputFileName)}")
+        runCommandLine("pandoc $mainFile -o ${this.tasksDir.resolve(outputFileName)}")
     }
 
     private fun runCommandLine(commandLine: String): Int {
