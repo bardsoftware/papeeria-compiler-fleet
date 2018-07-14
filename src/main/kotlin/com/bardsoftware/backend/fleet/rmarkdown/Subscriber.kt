@@ -36,17 +36,10 @@ class SubscriberArgs(parser: ArgParser) {
             help = "root of tasks content"
     )
 
-    val host by parser.storing(
-            "hostname",
-            help = "texbe hostname"
+    val texbeAddress by parser.storing(
+            "--texbe-addr",
+            help = "texbe address and port"
     )
-
-    val port by parser.storing(
-            "port",
-            help = "texbe port"
-    ) {
-        toInt()
-    }
 }
 
 enum class StatusCode {
@@ -79,6 +72,6 @@ fun main(args: Array<String>) {
 
     val publisher = Publisher(resultTopic)
 
-    val taskReceiver = ConvertingTaskReceiver(parsedArgs.host, parsedArgs.port, tasksDir, publisher)
+    val taskReceiver = ConvertingTaskReceiver(parsedArgs.texbeAddress, tasksDir, publisher)
     subscribe(subscriptionId, taskReceiver)
 }

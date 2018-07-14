@@ -137,15 +137,14 @@ open class TaskReceiver(tasksDirectory: String,
 }
 
 class ConvertingTaskReceiver(
-        hostname: String,
-        port: Int,
+        texbeAddress: String,
         tasksDirectory: String,
         resultPublisher: Publisher) : TaskReceiver(tasksDirectory, resultPublisher) {
 
     private val texbeCompilerStub: TexbeGrpc.TexbeBlockingStub
 
     init {
-        val channel = ManagedChannelBuilder.forAddress(hostname, port).build()
+        val channel = ManagedChannelBuilder.forTarget(texbeAddress).build()
         texbeCompilerStub = TexbeGrpc.newBlockingStub(channel)
     }
 
