@@ -148,7 +148,7 @@ class MarkdownTaskReceiver(
     private val texbeCompilerStub: TexbeGrpc.TexbeBlockingStub
 
     init {
-        val channel = ManagedChannelBuilder.forTarget(texbeAddress).build()
+        val channel = ManagedChannelBuilder.forTarget(texbeAddress).usePlaintext(true).build()
         texbeCompilerStub = TexbeGrpc.newBlockingStub(channel)
     }
 
