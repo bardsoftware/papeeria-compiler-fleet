@@ -19,6 +19,7 @@ import com.google.cloud.ServiceOptions
 import com.google.cloud.pubsub.v1.Subscriber
 import com.google.pubsub.v1.SubscriptionName
 import com.xenomachina.argparser.ArgParser
+import com.xenomachina.argparser.mainBody
 import java.util.concurrent.CompletableFuture
 
 class SubscriberArgs(parser: ArgParser) {
@@ -64,7 +65,7 @@ fun subscribe(subscription: String, receiver: CompilerFleetMessageReceiver) {
     }
 }
 
-fun main(args: Array<String>) {
+fun main(args: Array<String>) = mainBody {
     val parsedArgs = ArgParser(args).parseInto(::SubscriberArgs)
     val subscriptionId = parsedArgs.subscription
     val tasksDir = parsedArgs.tasksDir
