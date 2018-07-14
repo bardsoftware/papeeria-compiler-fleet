@@ -46,6 +46,8 @@ dependencies {
     testCompile "org.jetbrains.kotlin:kotlin-test-junit:$kotlin_version"
     //uncomment when we start doing grpc requests
     //compile 'io.grpc:grpc-protobuf:1.+'
+
+    compile files('lib/texbe-proto.jar')
 }
 
 task cli(type: JavaExec) {
