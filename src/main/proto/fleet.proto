@@ -41,6 +41,6 @@ message CompilerFleetRequest {
 message CompilerFleetResult {
     string taskId = 1;
     bytes resultBytes = 2;
-    string rootFileName = 3;
+    string outputFileName = 3;
     int32 statusCode = 4;
 }
