@@ -72,6 +72,6 @@ fun main(args: Array<String>) {
 
     val publisher = Publisher(resultTopic)
 
-    val taskReceiver = ConvertingTaskReceiver(parsedArgs.texbeAddress, tasksDir, publisher)
+    val taskReceiver = MarkdownTaskReceiver(parsedArgs.texbeAddress, tasksDir, publisher)
     subscribe(subscriptionId, taskReceiver)
 }

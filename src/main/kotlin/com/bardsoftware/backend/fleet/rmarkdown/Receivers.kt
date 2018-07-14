@@ -16,10 +16,13 @@
 package com.bardsoftware.backend.fleet.rmarkdown
 
 import com.bardsoftware.papeeria.backend.tex.CompileRequest
+import com.bardsoftware.papeeria.backend.tex.Engine
 import com.bardsoftware.papeeria.backend.tex.TexbeGrpc
 import com.google.api.client.util.ByteStreams
 import com.google.cloud.pubsub.v1.AckReplyConsumer
 import com.google.cloud.pubsub.v1.MessageReceiver
+import com.google.common.escape.CharEscaperBuilder
+import com.google.common.io.Files
 import com.google.protobuf.ByteString
 import com.google.pubsub.v1.PubsubMessage
 import io.grpc.ManagedChannelBuilder
@@ -31,6 +34,7 @@ import java.io.FileOutputStream
 import java.io.IOException
 import java.nio.file.Path
 import java.nio.file.Paths
+import java.util.*
 import java.util.zip.ZipEntry
 import java.util.zip.ZipInputStream
 
@@ -51,10 +55,10 @@ abstract class CompilerFleetMessageReceiver : MessageReceiver {
 open class TaskReceiver(tasksDirectory: String,
                         val resultPublisher: Publisher
 ) : CompilerFleetMessageReceiver() {
-    private val tasksDir: Path
+    protected val tasksDir: Path
     private val dockerProcessor = DockerProcessor(getDefaultDockerClient())
-    private val MOCK_FILE_NAME = "example.pdf"
-    private val MOCK_PDF_BYTES = TaskReceiver::class.java.classLoader.getResourceAsStream(MOCK_FILE_NAME).readBytes()
+    protected val MOCK_FILE_NAME = "example.pdf"
+    protected val MOCK_PDF_BYTES = TaskReceiver::class.java.classLoader.getResourceAsStream(MOCK_FILE_NAME).readBytes()
 
     init {
         val directoryPath = Paths.get(tasksDirectory)
@@ -136,12 +140,13 @@ open class TaskReceiver(tasksDirectory: String,
     }
 }
 
-class ConvertingTaskReceiver(
+class MarkdownTaskReceiver(
         texbeAddress: String,
         tasksDirectory: String,
         resultPublisher: Publisher) : TaskReceiver(tasksDirectory, resultPublisher) {
 
     private val texbeCompilerStub: TexbeGrpc.TexbeBlockingStub
+    private val COMPILE_DIR = File("/compile")
 
     init {
         val channel = ManagedChannelBuilder.forTarget(texbeAddress).build()
@@ -150,18 +155,48 @@ class ConvertingTaskReceiver(
 
     override fun processMessage(message: PubsubMessage): Boolean {
         val request = CompileRequest.parseFrom(message.data)
-        val compileResponse = texbeCompilerStub.compile(request)
+        fetchProjectFiles(request)
+        convertMarkdown(request)
 
         val taskId = request.id
         var isPublished = true
 
         val onPublishFailureCallback = {
-            LOGGER.info("Publish $taskId failed with code ${compileResponse.status}")
+            LOGGER.info("Publish $taskId failed with code ${StatusCode.SUCCESS}")
             isPublished = false
         }
 
-        val data = getResultData(taskId, compileResponse.pdfFile, request.outputBaseName, compileResponse.status.ordinal)
+        val data = getResultData(taskId, ByteString.copyFrom(MOCK_PDF_BYTES),
+                MOCK_FILE_NAME, StatusCode.SUCCESS.ordinal)
         resultPublisher.publish(data, onPublishFailureCallback)
         return isPublished
+    }
+
+    private fun fetchProjectFiles(request: CompileRequest) {
+        val fetchRequest = CompileRequest
+            .newBuilder()
+            .mergeFrom(request)
+            .setEngine(Engine.NONE)
+            .build()
+
+        texbeCompilerStub.compile(fetchRequest)
+    }
+
+    // converts Markdown into tex via pandoc
+    private fun convertMarkdown(request: CompileRequest) {
+        val outputFileName = Files.getNameWithoutExtension(request.mainFileName) + ".tex"
+        val mainFile = this.tasksDir.resolve(request.id).resolve("files")
+        runCommandLine("pandoc $mainFile -o ${COMPILE_DIR.resolve(outputFileName)}")
+    }
+
+    private fun runCommandLine(commandLine: String): Int {
+        LOGGER.debug("Running command line: {}", commandLine)
+        val processBuilder = ProcessBuilder().command("/bin/bash", "-c", commandLine)
+
+        processBuilder.start().let { p ->
+            val exitCode = p.waitFor()
+            LOGGER.debug("Process completed, exit code={}", exitCode)
+            return exitCode
+        }
     }
 }
