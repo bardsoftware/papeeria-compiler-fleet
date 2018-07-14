@@ -24,6 +24,7 @@ import com.google.protobuf.ByteString
 import com.google.pubsub.v1.PubsubMessage
 import com.google.pubsub.v1.SubscriptionName
 import com.xenomachina.argparser.ArgParser
+import com.xenomachina.argparser.mainBody
 import org.apache.commons.io.FileUtils
 import org.slf4j.LoggerFactory
 import java.io.*
@@ -167,7 +168,7 @@ fun subscribe(subscription: String, receiver: CompilerFleetMessageReceiver) {
     }
 }
 
-fun main(args: Array<String>) {
+fun main(args: Array<String>) = mainBody {
     val parsedArgs = ArgParser(args).parseInto(::SubscriberArgs)
     val subscriptionId = parsedArgs.subscription
     val tasksDir = parsedArgs.tasksDir
