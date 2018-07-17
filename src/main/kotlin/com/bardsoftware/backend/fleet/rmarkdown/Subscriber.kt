@@ -68,7 +68,7 @@ fun subscribe(subscription: String, receiver: CompilerFleetMessageReceiver) {
     }
 }
 
-var config = ConfigFactory.load()
+val config = ConfigFactory.load()
 
 fun main(args: Array<String>) = mainBody {
     val parsedArgs = ArgParser(args).parseInto(::SubscriberArgs)

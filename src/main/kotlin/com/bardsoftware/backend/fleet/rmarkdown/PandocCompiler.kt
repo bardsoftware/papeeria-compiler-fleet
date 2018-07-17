@@ -20,20 +20,29 @@ import org.slf4j.LoggerFactory
 import java.nio.file.Path
 
 val PANDOC_DEFAULT_VALUE = "pandoc"
+val CP_VALUE = "cp"
 
 private val LOGGER = LoggerFactory.getLogger("Pandoc")
 val PANDOC_DEFAULT_FONT = "DejaVu Sans"
 
-fun compile(mainFile: Path, outputFileName: Path, tasksDir: Path, font: String = PANDOC_DEFAULT_FONT) {
-    val pandocCompileCommand = config.getString("pandoc.compile.command")
+fun compile(mainFile: Path, outputFileName: Path, tasksDir: Path,
+            compileCommand: String = config.getString("pandoc.compile.command"),
+            font: String = PANDOC_DEFAULT_FONT) {
+    val commandLine = when (compileCommand) {
+        PANDOC_DEFAULT_VALUE -> {
+            String.format("%s %s -o %s --pdf-engine xelatex -s -V mainfont='%s' ",
+                    PANDOC_DEFAULT_VALUE, mainFile, outputFileName, font)
+        }
 
-    val commandLine = if (pandocCompileCommand == PANDOC_DEFAULT_VALUE) {
-        String.format("$PANDOC_DEFAULT_VALUE %s -o %s --pdf-engine xelatex -s -V mainfont='%s' ",
-                mainFile, outputFileName, font)
+        CP_VALUE -> {
+            String.format("%s %s %s",
+                    CP_VALUE, mainFile, outputFileName)
+        }
 
-    } else {
-        String.format("%s %s %s %s %s %s",
-                pandocCompileCommand, "", tasksDir, mainFile, outputFileName, font)
+        else -> {
+            String.format("%s %s %s %s %s %s",
+                    compileCommand, "", tasksDir, mainFile, outputFileName, font)
+        }
     }
 
     runCommandLine(commandLine)

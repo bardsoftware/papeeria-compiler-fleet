@@ -9,7 +9,7 @@ import java.nio.file.Paths
 
 class PandocTest {
     private val tasksDir = Paths.get("tasks")
-    private var rootFileName = "test.md"
+    private var rootFileName = "example.Rmd"
 
     @Before
     fun createDir() {
@@ -21,7 +21,7 @@ class PandocTest {
         val markdown = Paths.get("src","test","resources",rootFileName)
         val outputName = Files.getNameWithoutExtension(markdown.toString()) + ".tex"
 
-        compile("pandoc", markdown, tasksDir.resolve(outputName), tasksDir)
+        compile(markdown, tasksDir.resolve(outputName), tasksDir, CP_VALUE)
         assertTrue(tasksDir.resolve(outputName).toFile().exists())
     }
 
