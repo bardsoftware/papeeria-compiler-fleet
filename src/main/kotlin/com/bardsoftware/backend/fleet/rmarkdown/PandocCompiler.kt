@@ -28,9 +28,12 @@ fun compile(mainFile: Path, outputFileName: Path, tasksDir: Path, font: String =
     val pandocCompileCommand = config.getString("pandoc.compile.command")
 
     val commandLine = if (pandocCompileCommand == PANDOC_DEFAULT_VALUE) {
-        "$PANDOC_DEFAULT_VALUE $mainFile -o $outputFileName --pdf-engine xelatex -s -V mainfont='$font' "
+        String.format("$PANDOC_DEFAULT_VALUE %s -o %s --pdf-engine xelatex -s -V mainfont='%s' ",
+                mainFile, outputFileName, font)
+
     } else {
-        "$pandocCompileCommand \"\" $tasksDir $mainFile $outputFileName $font"
+        String.format("%s %s %s %s %s %s",
+                pandocCompileCommand, "", tasksDir, mainFile, outputFileName, font)
     }
 
     runCommandLine(commandLine)
