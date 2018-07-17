@@ -21,7 +21,6 @@ import com.bardsoftware.papeeria.backend.tex.TexbeGrpc
 import com.google.api.client.util.ByteStreams
 import com.google.cloud.pubsub.v1.AckReplyConsumer
 import com.google.cloud.pubsub.v1.MessageReceiver
-import com.google.common.escape.CharEscaperBuilder
 import com.google.common.io.Files
 import com.google.protobuf.ByteString
 import com.google.pubsub.v1.PubsubMessage
@@ -34,7 +33,6 @@ import java.io.FileOutputStream
 import java.io.IOException
 import java.nio.file.Path
 import java.nio.file.Paths
-import java.util.*
 import java.util.zip.ZipEntry
 import java.util.zip.ZipInputStream
 
@@ -143,7 +141,8 @@ open class TaskReceiver(tasksDirectory: String,
 class MarkdownTaskReceiver(
         texbeAddress: String,
         tasksDirectory: String,
-        resultPublisher: Publisher) : TaskReceiver(tasksDirectory, resultPublisher) {
+        resultPublisher: Publisher,
+        val pandocCompileCommand: String) : TaskReceiver(tasksDirectory, resultPublisher) {
 
     private val texbeCompilerStub: TexbeGrpc.TexbeBlockingStub
 
@@ -180,17 +179,7 @@ class MarkdownTaskReceiver(
     private fun convertMarkdown(request: CompileRequest) {
         val outputFileName = Files.getNameWithoutExtension(request.mainFileName) + ".tex"
         val mainFile = this.tasksDir.resolve(request.id).resolve("files")
-        runCommandLine("pandoc $mainFile -o ${this.tasksDir.resolve(outputFileName)}")
-    }
 
-    private fun runCommandLine(commandLine: String): Int {
-        LOGGER.debug("Running command line: {}", commandLine)
-        val processBuilder = ProcessBuilder().command("/bin/bash", "-c", commandLine)
-
-        processBuilder.start().let { p ->
-            val exitCode = p.waitFor()
-            LOGGER.debug("Process completed, exit code={}", exitCode)
-            return exitCode
-        }
+        compile(pandocCompileCommand, mainFile, this.tasksDir.resolve(outputFileName), this.tasksDir)
     }
 }
