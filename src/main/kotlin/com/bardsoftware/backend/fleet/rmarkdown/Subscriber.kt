@@ -19,9 +19,11 @@ import com.google.cloud.ServiceOptions
 import com.google.cloud.pubsub.v1.Subscriber
 import com.google.pubsub.v1.SubscriptionName
 import com.xenomachina.argparser.ArgParser
-import com.xenomachina.argparser.default
 import com.xenomachina.argparser.mainBody
 import java.util.concurrent.CompletableFuture
+import com.typesafe.config.ConfigFactory
+
+
 
 class SubscriberArgs(parser: ArgParser) {
     val subscription by parser.storing(
@@ -42,11 +44,6 @@ class SubscriberArgs(parser: ArgParser) {
             "--texbe-addr",
             help = "texbe address and port"
     )
-
-    val pandocCompileCommand by parser.storing(
-            "--pandoc-compile",
-            help = "command, which used to compile pandoc. Default value is pandoc"
-    ).default(PANDOC_DEFAULT_VALUE)
 }
 
 enum class StatusCode {
@@ -71,6 +68,8 @@ fun subscribe(subscription: String, receiver: CompilerFleetMessageReceiver) {
     }
 }
 
+var config = ConfigFactory.load()
+
 fun main(args: Array<String>) = mainBody {
     val parsedArgs = ArgParser(args).parseInto(::SubscriberArgs)
     val subscriptionId = parsedArgs.subscription
@@ -79,7 +78,6 @@ fun main(args: Array<String>) = mainBody {
 
     val publisher = Publisher(resultTopic)
 
-    val taskReceiver = MarkdownTaskReceiver(parsedArgs.texbeAddress, tasksDir,
-            publisher, parsedArgs.pandocCompileCommand)
+    val taskReceiver = MarkdownTaskReceiver(parsedArgs.texbeAddress, tasksDir, publisher)
     subscribe(subscriptionId, taskReceiver)
 }

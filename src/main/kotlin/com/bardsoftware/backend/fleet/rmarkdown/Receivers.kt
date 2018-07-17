@@ -141,8 +141,7 @@ open class TaskReceiver(tasksDirectory: String,
 class MarkdownTaskReceiver(
         texbeAddress: String,
         tasksDirectory: String,
-        resultPublisher: Publisher,
-        val pandocCompileCommand: String) : TaskReceiver(tasksDirectory, resultPublisher) {
+        resultPublisher: Publisher) : TaskReceiver(tasksDirectory, resultPublisher) {
 
     private val texbeCompilerStub: TexbeGrpc.TexbeBlockingStub
 
@@ -181,6 +180,6 @@ class MarkdownTaskReceiver(
         val projTasks = this.tasksDir.resolve(request.id)
         val mainFile = projTasks.resolve("files").resolve(request.mainFileName)
 
-        compile(pandocCompileCommand, mainFile, projTasks.resolve(outputFileName), projTasks)
+        compile(mainFile, projTasks.resolve(outputFileName), projTasks)
     }
 }
