@@ -178,8 +178,9 @@ class MarkdownTaskReceiver(
     // converts Markdown into tex via pandoc
     private fun convertMarkdown(request: CompileRequest) {
         val outputFileName = Files.getNameWithoutExtension(request.mainFileName) + ".tex"
-        val mainFile = this.tasksDir.resolve(request.id).resolve("files")
+        val projTasks = this.tasksDir.resolve(request.id)
+        val mainFile = projTasks.resolve("files").resolve(request.mainFileName)
 
-        compile(pandocCompileCommand, mainFile, this.tasksDir.resolve(outputFileName), this.tasksDir)
+        compile(pandocCompileCommand, mainFile, projTasks.resolve(outputFileName), projTasks)
     }
 }

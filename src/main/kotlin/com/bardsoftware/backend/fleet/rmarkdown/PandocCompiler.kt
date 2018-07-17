@@ -11,7 +11,7 @@ val PANDOC_DEFAULT_FONT = "DejaVu Sans"
 fun compile(pandocCompileCommand: String, mainFile: Path,
             outputFileName: Path, tasksDir: Path, font: String = PANDOC_DEFAULT_FONT) {
     val commandLine = if (pandocCompileCommand == PANDOC_DEFAULT_VALUE) {
-        "$PANDOC_DEFAULT_VALUE $mainFile -o $outputFileName --latex-engine xelatex -s -V mainfont='$font' "
+        "$PANDOC_DEFAULT_VALUE $mainFile -o $outputFileName --pdf-engine xelatex -s -V mainfont='$font' "
     } else {
         "$pandocCompileCommand \"\" $tasksDir $mainFile $outputFileName $font"
     }
