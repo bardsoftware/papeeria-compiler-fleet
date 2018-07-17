@@ -19,11 +19,11 @@ package com.bardsoftware.backend.fleet.rmarkdown
 import org.slf4j.LoggerFactory
 import java.nio.file.Path
 
-val PANDOC_DEFAULT_VALUE = "pandoc"
-val CP_VALUE = "cp"
+const val PANDOC_DEFAULT_VALUE = "pandoc"
+const val CP_VALUE = "cp"
 
 private val LOGGER = LoggerFactory.getLogger("Pandoc")
-val PANDOC_DEFAULT_FONT = "DejaVu Sans"
+const val PANDOC_DEFAULT_FONT = "DejaVu Sans"
 
 fun compile(mainFile: Path, outputFileName: Path, tasksDir: Path,
             compileCommand: String = config.getString("pandoc.compile.command"),
