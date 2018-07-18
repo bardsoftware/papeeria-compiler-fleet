@@ -180,7 +180,8 @@ class MarkdownTaskReceiver(
         val projTasks = this.tasksDir.resolve(request.id)
         val mainFile = projTasks.resolve("files").resolve(request.mainFileName).toString()
         val outputFile = projTasks.resolve(outputFileName).toString()
+        val projectRootAbsPath = this.tasksDir.parent.toAbsolutePath().toString()
 
-        compile(DEFAULT_CONFIG, "", projTasks.toString(), mainFile, outputFile, PANDOC_DEFAULT_FONT)
+        compile(DEFAULT_CONFIG, pandocArguments, projectRootAbsPath, projTasks.toString(), mainFile, outputFile, PANDOC_DEFAULT_FONT)
     }
 }

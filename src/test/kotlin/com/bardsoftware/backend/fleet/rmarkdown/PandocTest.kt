@@ -25,7 +25,7 @@ import org.junit.Test
 import java.nio.file.Paths
 
 class PandocTest {
-    private val CP_COMMAND = "cp %s %s"
+    private val CP_COMMAND = "cp \${source} \${dest}"
     private val tasksDir = Paths.get("tasks")
     private var rootFileName = "example.Rmd"
 
@@ -42,7 +42,9 @@ class PandocTest {
         val mockConfig = ConfigFactory
                 .empty()
                 .withValue("pandoc.compile.command", ConfigValueFactory.fromAnyRef(CP_COMMAND))
-        compile(mockConfig, markdown, tasksDir.resolve(outputName).toString())
+        val cpArguments = listOf("source", "dest")
+
+        compile(mockConfig, cpArguments, markdown, tasksDir.resolve(outputName).toString())
         assertTrue(tasksDir.resolve(outputName).toFile().exists())
     }
 
