@@ -21,8 +21,6 @@ import com.google.pubsub.v1.SubscriptionName
 import com.xenomachina.argparser.ArgParser
 import com.xenomachina.argparser.mainBody
 import java.util.concurrent.CompletableFuture
-import com.typesafe.config.ConfigFactory
-
 
 
 class SubscriberArgs(parser: ArgParser) {
@@ -67,8 +65,6 @@ fun subscribe(subscription: String, receiver: CompilerFleetMessageReceiver) {
         subscriber.stopAsync()
     }
 }
-
-val config = ConfigFactory.load()
 
 fun main(args: Array<String>) = mainBody {
     val parsedArgs = ArgParser(args).parseInto(::SubscriberArgs)
