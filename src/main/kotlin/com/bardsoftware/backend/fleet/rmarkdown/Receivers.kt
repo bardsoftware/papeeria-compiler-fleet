@@ -181,6 +181,6 @@ class MarkdownTaskReceiver(
         val mainFile = projTasks.resolve("files").resolve(request.mainFileName).toString()
         val outputFile = projTasks.resolve(outputFileName).toString()
 
-        compile(defaultConfig, "", projTasks.toString(), mainFile, outputFile, PANDOC_DEFAULT_FONT)
+        compile(DEFAULT_CONFIG, "", projTasks.toString(), mainFile, outputFile, PANDOC_DEFAULT_FONT)
     }
 }

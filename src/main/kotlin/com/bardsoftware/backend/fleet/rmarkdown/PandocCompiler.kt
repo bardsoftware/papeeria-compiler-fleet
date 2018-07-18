@@ -22,7 +22,7 @@ import org.slf4j.LoggerFactory
 
 private val LOGGER = LoggerFactory.getLogger("Pandoc")
 const val PANDOC_DEFAULT_FONT = "DejaVu Sans"
-val defaultConfig = ConfigFactory.load()
+val DEFAULT_CONFIG = ConfigFactory.load()
 
 fun compile(config: Config, vararg args: String) {
     val compileCommand= config.getString("pandoc.compile.command")
