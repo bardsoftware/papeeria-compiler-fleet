@@ -178,8 +178,9 @@ class MarkdownTaskReceiver(
     private fun convertMarkdown(request: CompileRequest) {
         val outputFileName = Files.getNameWithoutExtension(request.mainFileName) + ".tex"
         val projTasks = this.tasksDir.resolve(request.id)
-        val mainFile = projTasks.resolve("files").resolve(request.mainFileName)
+        val mainFile = projTasks.resolve("files").resolve(request.mainFileName).toString()
+        val outputFile = projTasks.resolve(outputFileName).toString()
 
-        compile(mainFile, projTasks.resolve(outputFileName), projTasks)
+        compile(defaultConfig, "", projTasks.toString(), mainFile, outputFile, PANDOC_DEFAULT_FONT)
     }
 }

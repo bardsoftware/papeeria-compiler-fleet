@@ -16,13 +16,17 @@
 package com.bardsoftware.backend.fleet.rmarkdown
 
 import com.google.common.io.Files
+import com.typesafe.config.Config
 import junit.framework.TestCase.assertTrue
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
+import org.mockito.Mockito.`when`
+import org.mockito.Mockito.mock
 import java.nio.file.Paths
 
 class PandocTest {
+    private val CP_COMMAND = "cp %s %s"
     private val tasksDir = Paths.get("tasks")
     private var rootFileName = "example.Rmd"
 
@@ -33,10 +37,13 @@ class PandocTest {
 
     @Test
     fun basicCompile() {
-        val markdown = Paths.get("src","test","resources",rootFileName)
-        val outputName = Files.getNameWithoutExtension(markdown.toString()) + ".tex"
+        val markdown = Paths.get("src","test","resources",rootFileName).toString()
+        val outputName = Files.getNameWithoutExtension(markdown) + ".tex"
 
-        compile(markdown, tasksDir.resolve(outputName), tasksDir, CP_VALUE)
+        val mockConfig = mock(Config::class.java)
+        `when`(mockConfig.getString("pandoc.compile.command")).thenReturn(CP_COMMAND
+
+        compile(mockConfig, markdown, tasksDir.resolve(outputName).toString())
         assertTrue(tasksDir.resolve(outputName).toFile().exists())
     }
 

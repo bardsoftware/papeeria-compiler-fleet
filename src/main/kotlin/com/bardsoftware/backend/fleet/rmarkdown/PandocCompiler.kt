@@ -16,34 +16,17 @@
 
 package com.bardsoftware.backend.fleet.rmarkdown
 
+import com.typesafe.config.Config
+import com.typesafe.config.ConfigFactory
 import org.slf4j.LoggerFactory
-import java.nio.file.Path
-
-const val PANDOC_DEFAULT_VALUE = "pandoc"
-const val CP_VALUE = "cp"
 
 private val LOGGER = LoggerFactory.getLogger("Pandoc")
 const val PANDOC_DEFAULT_FONT = "DejaVu Sans"
+val defaultConfig = ConfigFactory.load()
 
-fun compile(mainFile: Path, outputFileName: Path, tasksDir: Path,
-            compileCommand: String = config.getString("pandoc.compile.command"),
-            font: String = PANDOC_DEFAULT_FONT) {
-    val commandLine = when (compileCommand) {
-        PANDOC_DEFAULT_VALUE -> {
-            String.format("%s %s -o %s --pdf-engine xelatex -s -V mainfont='%s' ",
-                    PANDOC_DEFAULT_VALUE, mainFile, outputFileName, font)
-        }
-
-        CP_VALUE -> {
-            String.format("%s %s %s",
-                    CP_VALUE, mainFile, outputFileName)
-        }
-
-        else -> {
-            String.format("%s %s %s %s %s %s",
-                    compileCommand, "", tasksDir, mainFile, outputFileName, font)
-        }
-    }
+fun compile(config: Config, vararg args: String) {
+    val compileCommand= config.getString("pandoc.compile.command")
+    val commandLine = String.format(compileCommand, args)
 
     runCommandLine(commandLine)
 }
@@ -52,9 +35,8 @@ private fun runCommandLine(commandLine: String): Int {
     LOGGER.debug("Running command line: {}", commandLine)
     val processBuilder = ProcessBuilder().command("/bin/bash", "-c", commandLine)
 
-    processBuilder.start().let { p ->
-        val exitCode = p.waitFor()
-        LOGGER.debug("Process completed, exit code={}", exitCode)
-        return exitCode
-    }
+    val exitCode = processBuilder.start().waitFor()
+    LOGGER.debug("Process completed, exit code={}", exitCode)
+
+    return exitCode
 }
