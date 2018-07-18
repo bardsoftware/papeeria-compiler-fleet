@@ -41,7 +41,7 @@ class PandocTest {
         val outputName = Files.getNameWithoutExtension(markdown) + ".tex"
 
         val mockConfig = mock(Config::class.java)
-        `when`(mockConfig.getString("pandoc.compile.command")).thenReturn(CP_COMMAND
+        `when`(mockConfig.getString("pandoc.compile.command")).thenReturn(CP_COMMAND)
 
         compile(mockConfig, markdown, tasksDir.resolve(outputName).toString())
         assertTrue(tasksDir.resolve(outputName).toFile().exists())

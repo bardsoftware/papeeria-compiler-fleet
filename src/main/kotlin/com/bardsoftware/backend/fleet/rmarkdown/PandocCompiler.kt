@@ -26,8 +26,8 @@ val defaultConfig = ConfigFactory.load()
 
 fun compile(config: Config, vararg args: String) {
     val compileCommand= config.getString("pandoc.compile.command")
-    val commandLine = String.format(compileCommand, args)
-
+    val commandLine = String.format(compileCommand, *args)
+    
     runCommandLine(commandLine)
 }
 
