@@ -38,6 +38,7 @@ dependencies {
     compile "com.google.cloud:google-cloud-pubsub:0.32.0-beta"
     compile 'com.google.protobuf:protobuf-java:3.5.+'
     compile 'commons-io:commons-io:2.+'
+    compile 'org.apache.commons:commons-text:1.4'
     compile 'com.google.guava:guava:23.+'
     compile 'org.slf4j:slf4j-api:1.7.+'
     compile 'ch.qos.logback:logback-classic:1.3.+'
