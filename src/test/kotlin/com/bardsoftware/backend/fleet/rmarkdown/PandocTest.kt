@@ -15,41 +15,11 @@
  */
 package com.bardsoftware.backend.fleet.rmarkdown
 
-import com.bardsoftware.papeeria.backend.tex.CompileRequest
-import com.google.common.io.Files
-import org.junit.Before
 import org.junit.Test
-import org.mockito.Mockito
-import java.io.File
 import java.nio.file.Paths
 import kotlin.test.assertEquals
 
 class PandocTest {
-    private val tasksDir = "tasks"
-    private val rootFileName = "example.Rmd"
-
-    @Before
-    fun createDir() {
-        File(this.tasksDir).mkdir()
-    }
-
-    @Test
-    fun basicCompile() {
-        /*val markdown = Paths.get("src","test","resources",rootFileName).toString()
-        val outputName = Files.getNameWithoutExtension(markdown) + ".tex"
-
-        val publisher = Mockito.mock(Publisher::class.java)
-        val markdownReceiver = MarkdownTaskReceiver(null, tasksDir, publisher)
-
-        val request = CompileRequest
-                .newBuilder()
-                .setMainFileName(rootFileName)
-                .setId("taskId")
-                .build()
-
-        markdownReceiver.convertMarkdown(request)
-        assertTrue(tasksDir.resolve(outputName).toFile().exists())*/
-    }
 
     @Test
     fun substituteTest() {
@@ -60,14 +30,7 @@ class PandocTest {
                 Paths.get("output"),
                 "font")
 
-        val compileCommand = DEFAULT_CONFIG.getString("pandoc.compile.command")
-
         assertEquals("launch-pandoc \\tasks-dir \\working-dir \\input \\output \\font",
-                args.getCommandLine(compileCommand))
-    }
-
-    //@After
-    fun deleteDir() {
-        File(this.tasksDir).deleteRecursively()
+                args.getCommandLine(DEFAULT_CONFIG))
     }
 }
