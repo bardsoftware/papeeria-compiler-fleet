@@ -139,7 +139,7 @@ open class TaskReceiver(tasksDirectory: String,
 }
 
 class MarkdownTaskReceiver(
-        private val texbeCompilerStub: TexbeGrpc.TexbeBlockingStub,
+        private val texbeCompilerStub: TexbeGrpc.TexbeBlockingStub?,
         tasksDirectory: String,
         resultPublisher: Publisher) : TaskReceiver(tasksDirectory, resultPublisher) {
 
@@ -164,11 +164,11 @@ class MarkdownTaskReceiver(
 
     private fun fetchProjectFiles(request: CompileRequest) {
         val fetchRequest = request.toBuilder().setEngine(Engine.NONE).build()
-        texbeCompilerStub.compile(fetchRequest)
+        texbeCompilerStub?.compile(fetchRequest)
     }
 
     // converts Markdown into tex via pandoc
-    fun convertMarkdown(request: CompileRequest, config: Config = DEFAULT_CONFIG) {
+    fun convertMarkdown(request: CompileRequest, config: Config = DEFAULT_CONFIG): Int {
         val outputFileName = Files.getNameWithoutExtension(request.mainFileName) + ".tex"
         val projTasks = this.tasksDir.resolve(request.id)
         val mainFile = projTasks.resolve("files").resolve(request.mainFileName)
@@ -176,6 +176,6 @@ class MarkdownTaskReceiver(
         val projectRootAbsPath = this.tasksDir.toAbsolutePath().parent
 
         val arguments = PandocArguments(projectRootAbsPath, projTasks, mainFile, outputFile)
-        runCommandLine(arguments.getCommandLine(config))
+        return runCommandLine(arguments.getCommandLine(config))
     }
 }

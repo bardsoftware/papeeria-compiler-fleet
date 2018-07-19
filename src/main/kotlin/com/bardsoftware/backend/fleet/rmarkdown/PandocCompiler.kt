@@ -24,6 +24,7 @@ import java.nio.file.Path
 
 private val LOGGER = LoggerFactory.getLogger("Pandoc")
 const val PANDOC_DEFAULT_FONT = "DejaVu Sans"
+const val COMPILE_COMMAND_KEY = "pandoc.compile.command"
 val DEFAULT_CONFIG = ConfigFactory.load()
 
 private val pandocArguments = listOf("projectRootAbsPath", "workingDirRelPath",
@@ -46,7 +47,7 @@ class PandocArguments(
     }
 
     fun getCommandLine(config: Config): String {
-        val compileCommand = config.getString("pandoc.compile.command")
+        val compileCommand = config.getString(COMPILE_COMMAND_KEY)
 
         return substitutor.replace(compileCommand)
     }
