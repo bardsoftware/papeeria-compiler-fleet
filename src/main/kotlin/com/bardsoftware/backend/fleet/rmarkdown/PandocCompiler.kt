@@ -37,7 +37,7 @@ class PandocArguments(
         outputFile: Path,
         font: String = PANDOC_DEFAULT_FONT) {
 
-    val substitutor: StringSubstitutor
+    private val substitutor: StringSubstitutor
 
     init {
         val args = listOf(projectRootAbsPath.toString(), projTasks.toString(),
