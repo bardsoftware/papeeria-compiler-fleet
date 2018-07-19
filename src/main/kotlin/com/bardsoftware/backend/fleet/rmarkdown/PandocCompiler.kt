@@ -18,22 +18,16 @@ package com.bardsoftware.backend.fleet.rmarkdown
 
 import com.typesafe.config.Config
 import com.typesafe.config.ConfigFactory
-import org.apache.commons.lang.text.StrSubstitutor
 import org.slf4j.LoggerFactory
 
 private val LOGGER = LoggerFactory.getLogger("Pandoc")
 const val PANDOC_DEFAULT_FONT = "DejaVu Sans"
 val DEFAULT_CONFIG = ConfigFactory.load()
-val pandocArguments = listOf("projectRootAbsPath", "workingDirRelPath",
-        "inputFileName", "outputFileName", "mainFont")
 
-fun compile(config: Config, substituteArguments: List<String> = pandocArguments, vararg args: String) {
-    val compileCommand= config.getString("pandoc.compile.command")
-    val substitutions = (substituteArguments zip args).map { it.first to it.second }.toMap()
-    val substitutor = StrSubstitutor(substitutions)
-    val commandLine = substitutor.replace(compileCommand)
+fun compile(config: Config, arguments: PandocArguments) {
+    val compileCommand = config.getString("pandoc.compile.command")
 
-    runCommandLine(commandLine)
+    runCommandLine(arguments.getCommandLine(compileCommand))
 }
 
 private fun runCommandLine(commandLine: String): Int {

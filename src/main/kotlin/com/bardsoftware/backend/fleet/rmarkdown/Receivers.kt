@@ -24,7 +24,7 @@ import com.google.cloud.pubsub.v1.MessageReceiver
 import com.google.common.io.Files
 import com.google.protobuf.ByteString
 import com.google.pubsub.v1.PubsubMessage
-import io.grpc.ManagedChannelBuilder
+import com.typesafe.config.Config
 import org.apache.commons.io.FileUtils
 import org.slf4j.LoggerFactory
 import java.io.ByteArrayInputStream
@@ -139,16 +139,9 @@ open class TaskReceiver(tasksDirectory: String,
 }
 
 class MarkdownTaskReceiver(
-        texbeAddress: String,
+        private val texbeCompilerStub: TexbeGrpc.TexbeBlockingStub,
         tasksDirectory: String,
         resultPublisher: Publisher) : TaskReceiver(tasksDirectory, resultPublisher) {
-
-    private val texbeCompilerStub: TexbeGrpc.TexbeBlockingStub
-
-    init {
-        val channel = ManagedChannelBuilder.forTarget(texbeAddress).usePlaintext(true).build()
-        texbeCompilerStub = TexbeGrpc.newBlockingStub(channel)
-    }
 
     override fun processMessage(message: PubsubMessage): Boolean {
         val request = CompileRequest.parseFrom(message.data)
@@ -175,13 +168,14 @@ class MarkdownTaskReceiver(
     }
 
     // converts Markdown into tex via pandoc
-    private fun convertMarkdown(request: CompileRequest) {
+    fun convertMarkdown(request: CompileRequest, config: Config = DEFAULT_CONFIG) {
         val outputFileName = Files.getNameWithoutExtension(request.mainFileName) + ".tex"
         val projTasks = this.tasksDir.resolve(request.id)
-        val mainFile = projTasks.resolve("files").resolve(request.mainFileName).toString()
-        val outputFile = projTasks.resolve(outputFileName).toString()
-        val projectRootAbsPath = this.tasksDir.parent.toAbsolutePath().toString()
+        val mainFile = projTasks.resolve("files").resolve(request.mainFileName)
+        val outputFile = projTasks.resolve(outputFileName)
+        val projectRootAbsPath = this.tasksDir.toAbsolutePath().parent
 
-        compile(DEFAULT_CONFIG, pandocArguments, projectRootAbsPath, projTasks.toString(), mainFile, outputFile, PANDOC_DEFAULT_FONT)
+        val arguments = PandocArguments(projectRootAbsPath, projTasks, mainFile, outputFile)
+        compile(config, arguments)
     }
 }

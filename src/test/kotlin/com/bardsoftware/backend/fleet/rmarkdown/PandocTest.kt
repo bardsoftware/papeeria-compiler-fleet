@@ -15,41 +15,59 @@
  */
 package com.bardsoftware.backend.fleet.rmarkdown
 
+import com.bardsoftware.papeeria.backend.tex.CompileRequest
 import com.google.common.io.Files
-import com.typesafe.config.ConfigFactory
-import com.typesafe.config.ConfigValueFactory
-import junit.framework.TestCase.assertTrue
-import org.junit.After
 import org.junit.Before
 import org.junit.Test
+import org.mockito.Mockito
+import java.io.File
 import java.nio.file.Paths
+import kotlin.test.assertEquals
 
 class PandocTest {
-    private val CP_COMMAND = "cp \${source} \${dest}"
-    private val tasksDir = Paths.get("tasks")
-    private var rootFileName = "example.Rmd"
+    private val tasksDir = "tasks"
+    private val rootFileName = "example.Rmd"
 
     @Before
     fun createDir() {
-        this.tasksDir.toFile().mkdir()
+        File(this.tasksDir).mkdir()
     }
 
     @Test
     fun basicCompile() {
-        val markdown = Paths.get("src","test","resources",rootFileName).toString()
+        /*val markdown = Paths.get("src","test","resources",rootFileName).toString()
         val outputName = Files.getNameWithoutExtension(markdown) + ".tex"
 
-        val mockConfig = ConfigFactory
-                .empty()
-                .withValue("pandoc.compile.command", ConfigValueFactory.fromAnyRef(CP_COMMAND))
-        val cpArguments = listOf("source", "dest")
+        val publisher = Mockito.mock(Publisher::class.java)
+        val markdownReceiver = MarkdownTaskReceiver(null, tasksDir, publisher)
 
-        compile(mockConfig, cpArguments, markdown, tasksDir.resolve(outputName).toString())
-        assertTrue(tasksDir.resolve(outputName).toFile().exists())
+        val request = CompileRequest
+                .newBuilder()
+                .setMainFileName(rootFileName)
+                .setId("taskId")
+                .build()
+
+        markdownReceiver.convertMarkdown(request)
+        assertTrue(tasksDir.resolve(outputName).toFile().exists())*/
     }
 
-    @After
+    @Test
+    fun substituteTest() {
+        val args = PandocArguments(
+                Paths.get("tasks-dir"),
+                Paths.get("working-dir"),
+                Paths.get("input"),
+                Paths.get("output"),
+                "font")
+
+        val compileCommand = DEFAULT_CONFIG.getString("pandoc.compile.command")
+
+        assertEquals("launch-pandoc \\tasks-dir \\working-dir \\input \\output \\font",
+                args.getCommandLine(compileCommand))
+    }
+
+    //@After
     fun deleteDir() {
-        this.tasksDir.toFile().deleteRecursively()
+        File(this.tasksDir).deleteRecursively()
     }
 }
