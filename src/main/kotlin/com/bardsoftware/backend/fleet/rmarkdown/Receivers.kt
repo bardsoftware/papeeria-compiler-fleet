@@ -176,6 +176,6 @@ class MarkdownTaskReceiver(
         val projectRootAbsPath = this.tasksDir.toAbsolutePath().parent
 
         val arguments = PandocArguments(projectRootAbsPath, projTasks, mainFile, outputFile)
-        compile(config, arguments)
+        runCommandLine(arguments.getCommandLine(config))
     }
 }

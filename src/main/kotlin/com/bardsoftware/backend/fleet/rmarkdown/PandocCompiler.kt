@@ -18,19 +18,42 @@ package com.bardsoftware.backend.fleet.rmarkdown
 
 import com.typesafe.config.Config
 import com.typesafe.config.ConfigFactory
+import org.apache.commons.text.StringSubstitutor
 import org.slf4j.LoggerFactory
+import java.nio.file.Path
 
 private val LOGGER = LoggerFactory.getLogger("Pandoc")
 const val PANDOC_DEFAULT_FONT = "DejaVu Sans"
 val DEFAULT_CONFIG = ConfigFactory.load()
 
-fun compile(config: Config, arguments: PandocArguments) {
-    val compileCommand = config.getString("pandoc.compile.command")
+private val pandocArguments = listOf("projectRootAbsPath", "workingDirRelPath",
+        "inputFileName", "outputFileName", "mainFont")
 
-    runCommandLine(arguments.getCommandLine(compileCommand))
+class PandocArguments(
+        projectRootAbsPath: Path,
+        projTasks: Path,
+        mainFile: Path,
+        outputFile: Path,
+        font: String = PANDOC_DEFAULT_FONT) {
+
+    val substitutor: StringSubstitutor
+
+    init {
+        val args = listOf(projectRootAbsPath.toString(), projTasks.toString(),
+                mainFile.toString(), outputFile.toString(), font)
+        val substitutions = (pandocArguments zip args).map { it.first to it.second }.toMap()
+        substitutor = StringSubstitutor(substitutions)
+    }
+
+    fun getCommandLine(config: Config): String {
+        val compileCommand = config.getString("pandoc.compile.command")
+
+        return substitutor.replace(compileCommand)
+    }
+
 }
 
-private fun runCommandLine(commandLine: String): Int {
+fun runCommandLine(commandLine: String): Int {
     LOGGER.debug("Running command line: {}", commandLine)
     val processBuilder = ProcessBuilder().command("/bin/bash", "-c", commandLine)
 
