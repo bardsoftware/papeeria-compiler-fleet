@@ -26,6 +26,7 @@ import com.google.protobuf.ByteString
 import com.google.pubsub.v1.PubsubMessage
 import com.typesafe.config.Config
 import org.apache.commons.io.FileUtils
+import org.apache.commons.text.StringSubstitutor
 import org.slf4j.LoggerFactory
 import java.io.ByteArrayInputStream
 import java.io.File
@@ -143,10 +144,15 @@ class MarkdownTaskReceiver(
         tasksDirectory: String,
         resultPublisher: Publisher) : TaskReceiver(tasksDirectory, resultPublisher) {
 
+    private val args = listOf("projectRootAbsPath", "workingDirRelPath",
+            "inputFileName", "outputFileName", "mainFont")
+    private val COMPILE_COMMAND_KEY = "pandoc.compile.command"
+
     override fun processMessage(message: PubsubMessage): Boolean {
         val request = CompileRequest.parseFrom(message.data)
         fetchProjectFiles(request)
-        convertMarkdown(request)
+        val commandArguments = getPandocArguments(request)
+        convertMarkdown(commandArguments)
 
         val taskId = request.id
         var isPublished = true
@@ -167,15 +173,25 @@ class MarkdownTaskReceiver(
         texbeCompilerStub.compile(fetchRequest)
     }
 
-    // converts Markdown into tex via pandoc
-    private fun convertMarkdown(request: CompileRequest, config: Config = DEFAULT_CONFIG): Int {
+    private fun getPandocArguments(request: CompileRequest): Map<String, String> {
         val outputFileName = Files.getNameWithoutExtension(request.mainFileName) + ".tex"
         val projTasks = this.tasksDir.resolve(request.id)
         val mainFile = projTasks.resolve("files").resolve(request.mainFileName)
         val outputFile = projTasks.resolve(outputFileName)
         val projectRootAbsPath = this.tasksDir.toAbsolutePath().parent
 
-        val arguments = PandocArguments(projectRootAbsPath, projTasks, mainFile, outputFile)
-        return runCommandLine(arguments.getCommandLine(config))
+        val values = listOf(projectRootAbsPath.toString(), projTasks.toString(),
+                mainFile.toString(), outputFile.toString(), PANDOC_DEFAULT_FONT)
+
+        return (args zip values).map { it.first to it.second }.toMap()
+    }
+
+    // converts Markdown into tex via pandoc
+    private fun convertMarkdown(commandArguments: Map<String, String>, config: Config = DEFAULT_CONFIG): Int {
+        val substitutor = StringSubstitutor(commandArguments)
+
+        val rawCommandLine = config.getString(COMPILE_COMMAND_KEY)
+        val commandLine = substitutor.replace(rawCommandLine)
+        return runCommandLine(commandLine)
     }
 }

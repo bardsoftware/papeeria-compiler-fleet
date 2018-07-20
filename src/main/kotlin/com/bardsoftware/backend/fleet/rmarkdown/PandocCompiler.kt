@@ -24,35 +24,7 @@ import java.nio.file.Path
 
 private val LOGGER = LoggerFactory.getLogger("Pandoc")
 const val PANDOC_DEFAULT_FONT = "DejaVu Sans"
-const val COMPILE_COMMAND_KEY = "pandoc.compile.command"
 val DEFAULT_CONFIG = ConfigFactory.load()
-
-private val pandocArguments = listOf("projectRootAbsPath", "workingDirRelPath",
-        "inputFileName", "outputFileName", "mainFont")
-
-class PandocArguments(
-        projectRootAbsPath: Path,
-        projTasks: Path,
-        mainFile: Path,
-        outputFile: Path,
-        font: String = PANDOC_DEFAULT_FONT) {
-
-    private val substitutor: StringSubstitutor
-
-    init {
-        val args = listOf(projectRootAbsPath.toString(), projTasks.toString(),
-                mainFile.toString(), outputFile.toString(), font)
-        val substitutions = (pandocArguments zip args).map { it.first to it.second }.toMap()
-        substitutor = StringSubstitutor(substitutions)
-    }
-
-    fun getCommandLine(config: Config): String {
-        val compileCommand = config.getString(COMPILE_COMMAND_KEY)
-
-        return substitutor.replace(compileCommand)
-    }
-
-}
 
 fun runCommandLine(commandLine: String): Int {
     LOGGER.debug("Running command line: {}", commandLine)
