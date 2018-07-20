@@ -15,22 +15,47 @@
  */
 package com.bardsoftware.backend.fleet.rmarkdown
 
+import com.google.common.io.Files
+import com.typesafe.config.ConfigFactory
+import com.typesafe.config.ConfigValueFactory
+import org.junit.After
+import org.junit.Before
 import org.junit.Test
+import org.mockito.Mockito
+import java.io.File
 import java.nio.file.Paths
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 class PandocTest {
+    private val CP_COMMAND = "cp \${source} \${dest}"
+    private val tasksDir = "tasks"
+
+    @Before
+    fun createDir() {
+        File(this.tasksDir).mkdir()
+    }
 
     @Test
-    fun substituteTest() {
-        val args = PandocArguments(
-                Paths.get("tasks-dir"),
-                Paths.get("working-dir"),
-                Paths.get("input"),
-                Paths.get("output"),
-                "font")
+    fun basicCompile() {
+        val inputFile = Paths.get("src", "test", "resources", "example.Rmd").toString()
+        val outputName = Files.getNameWithoutExtension(inputFile) + ".tex"
+        val outputFile = Paths.get(tasksDir).resolve(outputName).toFile()
+        val publisher = Mockito.mock(Publisher::class.java)
+        val markdownReceiver = MarkdownTaskReceiver(null, tasksDir, publisher)
 
-        assertEquals("launch-pandoc \\tasks-dir \\working-dir \\input \\output \\font",
-                args.getCommandLine(DEFAULT_CONFIG))
+        val mockConfig = ConfigFactory
+                .empty()
+                .withValue("pandoc.compile.command", ConfigValueFactory.fromAnyRef(CP_COMMAND))
+        val cpArguments = mapOf("source" to inputFile, "dest" to outputFile.toString())
+        val exitCode = markdownReceiver.convertMarkdown(cpArguments, mockConfig)
+
+        assertEquals(0, exitCode)
+        assertTrue(outputFile.exists())
+    }
+
+    @After
+    fun deleteDir() {
+        File(this.tasksDir).deleteRecursively()
     }
 }
