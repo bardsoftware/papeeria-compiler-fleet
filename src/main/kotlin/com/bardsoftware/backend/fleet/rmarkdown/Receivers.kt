@@ -144,7 +144,7 @@ class MarkdownTaskReceiver(
         tasksDirectory: String,
         resultPublisher: Publisher) : TaskReceiver(tasksDirectory, resultPublisher) {
 
-    private val args = listOf("projectRootAbsPath", "workingDirRelPath",
+    private val pandocArguments = listOf("projectRootAbsPath", "workingDirRelPath",
             "inputFileName", "outputFileName", "mainFont")
     private val COMPILE_COMMAND_KEY = "pandoc.compile.command"
 
@@ -183,7 +183,7 @@ class MarkdownTaskReceiver(
         val values = listOf(projectRootAbsPath.toString(), projTasks.toString(),
                 mainFile.toString(), outputFile.toString(), PANDOC_DEFAULT_FONT)
 
-        return (args zip values).map { it.first to it.second }.toMap()
+        return (pandocArguments zip values).map { it.first to it.second }.toMap()
     }
 
     // converts Markdown into tex via pandoc

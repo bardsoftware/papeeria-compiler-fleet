@@ -38,16 +38,17 @@ class PandocTest {
 
     @Test
     fun basicCompile() {
-        val inputFile = Paths.get("src", "test", "resources", "example.Rmd").toString()
-        val outputName = Files.getNameWithoutExtension(inputFile) + ".tex"
+        val source = Paths.get("src", "test", "resources", "example.Rmd").toString()
+        val outputName = Files.getNameWithoutExtension(source) + ".tex"
         val outputFile = Paths.get(tasksDir).resolve(outputName).toFile()
+
         val publisher = Mockito.mock(Publisher::class.java)
         val markdownReceiver = MarkdownTaskReceiver(null, tasksDir, publisher)
 
         val mockConfig = ConfigFactory
                 .empty()
                 .withValue("pandoc.compile.command", ConfigValueFactory.fromAnyRef(CP_COMMAND))
-        val cpArguments = mapOf("source" to inputFile, "dest" to outputFile.toString())
+        val cpArguments = mapOf("source" to source, "dest" to outputFile.toString())
         val exitCode = markdownReceiver.convertMarkdown(cpArguments, mockConfig)
 
         assertEquals(0, exitCode)

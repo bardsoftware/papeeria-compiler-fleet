@@ -16,11 +16,8 @@
 
 package com.bardsoftware.backend.fleet.rmarkdown
 
-import com.typesafe.config.Config
 import com.typesafe.config.ConfigFactory
-import org.apache.commons.text.StringSubstitutor
 import org.slf4j.LoggerFactory
-import java.nio.file.Path
 
 private val LOGGER = LoggerFactory.getLogger("Pandoc")
 const val PANDOC_DEFAULT_FONT = "DejaVu Sans"
