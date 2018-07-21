@@ -47,7 +47,7 @@ open class Publisher(private val topicName: String) {
         this.pubsubPublisher = Publisher.newBuilder(serviceTopicName).build()
     }
 
-    fun publish(data: ByteString, onFailureCallback: () -> Unit) {
+    open fun publish(data: ByteString, onFailureCallback: () -> Unit) {
         val pubsubMessage = PubsubMessage.newBuilder()
                 .setData(data)
                 .build()
