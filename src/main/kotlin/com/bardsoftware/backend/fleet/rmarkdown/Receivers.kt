@@ -153,7 +153,10 @@ class MarkdownTaskReceiver(
         val request = CompileRequest.parseFrom(message.data)
         fetchProjectFiles(request)
         val commandArguments = getCmdLineArguments(request)
-        convertMarkdown(commandArguments)
+        val exitCode = convertMarkdown(commandArguments)
+        if (exitCode != 0) {
+            return false
+        }
 
         val taskId = request.id
         var isPublished = true
@@ -190,7 +193,6 @@ class MarkdownTaskReceiver(
     // converts Markdown into tex via pandoc
     private fun convertMarkdown(commandArguments: Map<String, String>): Int {
         val substitutor = StringSubstitutor(commandArguments)
-
         val rawCommandLine = config.getString(COMPILE_COMMAND_KEY)
         val commandLine = substitutor.replace(rawCommandLine)
         return runCommandLine(commandLine)

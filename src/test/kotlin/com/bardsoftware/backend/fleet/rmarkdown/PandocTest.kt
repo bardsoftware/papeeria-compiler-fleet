@@ -20,11 +20,14 @@ import com.google.common.io.Files
 import com.google.pubsub.v1.PubsubMessage
 import com.nhaarman.mockito_kotlin.any
 import com.nhaarman.mockito_kotlin.mock
+import com.typesafe.config.Config
 import com.typesafe.config.ConfigFactory
 import com.typesafe.config.ConfigValueFactory
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
+import org.mockito.Mockito
+import org.mockito.Mockito.`when`
 import java.io.File
 import java.nio.file.Paths
 import kotlin.test.assertEquals
@@ -32,6 +35,7 @@ import kotlin.test.assertTrue
 
 class PandocTest {
     private val CP_COMMAND = "cp \${projectRootAbsPath}/\${workingDirRelPath}/\${inputFileName} \${outputFileName}"
+    private val CONFIG_KEY = "pandoc.compile.command"
     private val tasksDir = "tasks"
     private val taskId = "taskId"
 
@@ -52,9 +56,8 @@ class PandocTest {
             on { publish(any(), any()) }.then{}
         }
 
-        val mockConfig = ConfigFactory
-                .empty()
-                .withValue("pandoc.compile.command", ConfigValueFactory.fromAnyRef(CP_COMMAND))
+        val mockConfig = Mockito.mock(Config::class.java)
+        `when`(mockConfig.getString(CONFIG_KEY)).thenReturn(CP_COMMAND)
         val markdownReceiver = MarkdownTaskReceiver(null, tasksDir, publisher, mockConfig)
 
         val request = CompileRequest
@@ -67,6 +70,7 @@ class PandocTest {
         val message = PubsubMessage.newBuilder().setData(request).build()
         val isPublished = markdownReceiver.processMessage(message)
 
+        Mockito.verify(mockConfig, Mockito.times(1)).getString(CONFIG_KEY)
         assertTrue(outputFile.exists())
         assertTrue(isPublished)
     }
