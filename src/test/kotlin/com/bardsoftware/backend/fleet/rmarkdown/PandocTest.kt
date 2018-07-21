@@ -21,8 +21,6 @@ import com.google.pubsub.v1.PubsubMessage
 import com.nhaarman.mockito_kotlin.any
 import com.nhaarman.mockito_kotlin.mock
 import com.typesafe.config.Config
-import com.typesafe.config.ConfigFactory
-import com.typesafe.config.ConfigValueFactory
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
@@ -30,7 +28,6 @@ import org.mockito.Mockito
 import org.mockito.Mockito.`when`
 import java.io.File
 import java.nio.file.Paths
-import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 class PandocTest {
