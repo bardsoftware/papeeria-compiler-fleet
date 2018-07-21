@@ -19,8 +19,6 @@ import com.bardsoftware.papeeria.backend.tex.CompileRequest
 import com.google.common.io.Files
 import com.google.pubsub.v1.PubsubMessage
 import com.nhaarman.mockito_kotlin.any
-import com.nhaarman.mockito_kotlin.doNothing
-import com.nhaarman.mockito_kotlin.eq
 import com.nhaarman.mockito_kotlin.mock
 import com.typesafe.config.ConfigFactory
 import com.typesafe.config.ConfigValueFactory
@@ -30,6 +28,7 @@ import org.junit.Test
 import java.io.File
 import java.nio.file.Paths
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 class PandocTest {
     private val CP_COMMAND = "cp \${projectRootAbsPath}/\${workingDirRelPath}/\${inputFileName} \${outputFileName}"
@@ -47,19 +46,11 @@ class PandocTest {
     fun basicCompile() {
         val source = Paths.get("src", "test", "resources", "example.Rmd").toString()
         val outputName = Files.getNameWithoutExtension(source) + ".tex"
-        val outputFile = Paths.get(tasksDir).resolve(outputName).toFile()
+        val outputFile = Paths.get(tasksDir).resolve(taskId).resolve(outputName).toFile()
 
         val publisher = mock<Publisher> {
             on { publish(any(), any()) }.then{}
-            //doNothing().`when`(publisher.publish(anyObject(), {}))
         }
-        //mock(Publisher::class.java)
-        //doNothing().`when`(publisher.publish(Matchers.notNull() as ByteString, {}))
-        //doNothing().`when`(publisher.publish(Matchers.any(ByteString::class.java), {}))
-        //`when`(publisher.publish(any(ByteString::class.java)) {}).then {  }
-        //`when`(publisher.publish(ByteString.copyFrom("resa".toByteArray()), {}))
-        //`when`(publisher.publish(Matchers.notNull() as ByteString, {}))
-        //doNothing().`when`(publisher.publish(anyObject(), {}))
 
         val mockConfig = ConfigFactory
                 .empty()
@@ -74,13 +65,13 @@ class PandocTest {
                 .build()
                 .toByteString()
         val message = PubsubMessage.newBuilder().setData(request).build()
-        markdownReceiver.processMessage(message)
+        val isPublished = markdownReceiver.processMessage(message)
 
-        assertEquals(0, 0)
-        //assertTrue(outputFile.exists())
+        assertTrue(outputFile.exists())
+        assertTrue(isPublished)
     }
 
-    //@After
+    @After
     fun deleteDir() {
         File(this.tasksDir).deleteRecursively()
     }
