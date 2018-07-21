@@ -151,10 +151,13 @@ class MarkdownTaskReceiver(
 
     override fun processMessage(message: PubsubMessage): Boolean {
         val request = CompileRequest.parseFrom(message.data)
+        LOGGER.debug("Converting Markdown to tex: {}", request.mainFileName)
+
         fetchProjectFiles(request)
         val commandArguments = getCmdLineArguments(request)
         val exitCode = convertMarkdown(commandArguments)
         if (exitCode != 0) {
+            LOGGER.error("Failed to convert Markdown to ex with exitcode {}", exitCode)
             return false
         }
 
@@ -173,6 +176,7 @@ class MarkdownTaskReceiver(
     }
 
     private fun fetchProjectFiles(request: CompileRequest) {
+        LOGGER.debug("Fetching project with {} id from texbe", request.id)
         val fetchRequest = request.toBuilder().setEngine(Engine.NONE).build()
         texbeCompilerStub?.compile(fetchRequest)
     }
