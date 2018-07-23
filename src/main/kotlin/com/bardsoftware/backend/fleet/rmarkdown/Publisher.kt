@@ -40,7 +40,7 @@ interface PublisherApi {
     fun publish(data: ByteString, onFailureCallback: () -> Unit)
 }
 
-open class Publisher(private val topicName: String) : PublisherApi {
+class Publisher(private val topicName: String) : PublisherApi {
     private val pubsubPublisher: Publisher
 
     init {
