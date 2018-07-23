@@ -52,7 +52,7 @@ abstract class CompilerFleetMessageReceiver : MessageReceiver {
 }
 
 open class TaskReceiver(tasksDirectory: String,
-                        val resultPublisher: Publisher
+                        val resultPublisher: PublisherApi
 ) : CompilerFleetMessageReceiver() {
     protected val tasksDir: Path
     private val dockerProcessor = DockerProcessor(getDefaultDockerClient())
@@ -142,7 +142,7 @@ open class TaskReceiver(tasksDirectory: String,
 class MarkdownTaskReceiver(
         private val texbeCompilerStub: TexbeGrpc.TexbeBlockingStub?,
         tasksDirectory: String,
-        resultPublisher: Publisher,
+        resultPublisher: PublisherApi,
         private val config: Config = DEFAULT_CONFIG) : TaskReceiver(tasksDirectory, resultPublisher) {
 
     private val arguments = listOf("projectRootAbsPath", "workingDirRelPath",

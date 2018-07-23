@@ -46,7 +46,7 @@ class PandocTest {
         val outputName = Files.getNameWithoutExtension(source) + ".tex"
         val outputFile = Paths.get(tasksDir).resolve(taskId).resolve(outputName).toFile()
 
-        val publisher = mock<Publisher> {
+        val publisher = mock<PublisherApi> {
             on { publish(any(), any()) }.then{}
         }
         val mockConfig = mock<Config> {
