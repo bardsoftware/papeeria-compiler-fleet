@@ -18,13 +18,14 @@ package com.bardsoftware.backend.fleet.rmarkdown
 import com.bardsoftware.papeeria.backend.tex.CompileRequest
 import com.google.common.io.Files
 import com.google.pubsub.v1.PubsubMessage
-import com.nhaarman.mockito_kotlin.any
-import com.nhaarman.mockito_kotlin.mock
+import com.nhaarman.mockitokotlin2.any
+import com.nhaarman.mockitokotlin2.mock
+import com.nhaarman.mockitokotlin2.times
+import com.nhaarman.mockitokotlin2.verify
 import com.typesafe.config.Config
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
-import org.mockito.Mockito
 import java.io.File
 import java.nio.file.Paths
 import kotlin.test.assertTrue
@@ -46,7 +47,7 @@ class PandocTest {
         val outputName = Files.getNameWithoutExtension(source) + ".tex"
         val outputFile = Paths.get(tasksDir).resolve(taskId).resolve(outputName).toFile()
 
-        val publisher = mock<PublisherApi> {
+        val publisher = mock<Publisher> {
             on { publish(any(), any()) }.then{}
         }
         val mockConfig = mock<Config> {
@@ -64,7 +65,7 @@ class PandocTest {
         val message = PubsubMessage.newBuilder().setData(request).build()
         val isPublished = markdownReceiver.processMessage(message)
 
-        Mockito.verify(mockConfig, Mockito.times(1)).getString(CONFIG_KEY)
+        verify(mockConfig, times(1)).getString(CONFIG_KEY)
         assertTrue(outputFile.exists())
         assertTrue(isPublished)
     }
