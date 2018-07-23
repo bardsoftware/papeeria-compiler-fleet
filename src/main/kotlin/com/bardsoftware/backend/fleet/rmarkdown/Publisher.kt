@@ -36,7 +36,11 @@ fun getResultData(taskId: String, compiledBytes: ByteString, outputFileName: Str
 
 private val LOGGER = LoggerFactory.getLogger("Publisher")
 
-open class Publisher(private val topicName: String) {
+interface PublisherApi {
+    fun publish(data: ByteString, onFailureCallback: () -> Unit)
+}
+
+class Publisher(private val topicName: String) : PublisherApi {
     private val pubsubPublisher: Publisher
 
     init {
@@ -47,7 +51,7 @@ open class Publisher(private val topicName: String) {
         this.pubsubPublisher = Publisher.newBuilder(serviceTopicName).build()
     }
 
-    fun publish(data: ByteString, onFailureCallback: () -> Unit) {
+    override fun publish(data: ByteString, onFailureCallback: () -> Unit) {
         val pubsubMessage = PubsubMessage.newBuilder()
                 .setData(data)
                 .build()

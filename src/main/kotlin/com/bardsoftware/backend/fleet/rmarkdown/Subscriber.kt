@@ -15,12 +15,15 @@
  */
 package com.bardsoftware.backend.fleet.rmarkdown
 
+import com.bardsoftware.papeeria.backend.tex.TexbeGrpc
 import com.google.cloud.ServiceOptions
 import com.google.cloud.pubsub.v1.Subscriber
 import com.google.pubsub.v1.SubscriptionName
 import com.xenomachina.argparser.ArgParser
 import com.xenomachina.argparser.mainBody
+import io.grpc.ManagedChannelBuilder
 import java.util.concurrent.CompletableFuture
+
 
 class SubscriberArgs(parser: ArgParser) {
     val subscription by parser.storing(
@@ -73,6 +76,12 @@ fun main(args: Array<String>) = mainBody {
 
     val publisher = Publisher(resultTopic)
 
-    val taskReceiver = MarkdownTaskReceiver(parsedArgs.texbeAddress, tasksDir, publisher)
+    val channel = ManagedChannelBuilder
+            .forTarget(parsedArgs.texbeAddress)
+            .usePlaintext(true)
+            .build()
+    val texbeCompilerStub = TexbeGrpc.newBlockingStub(channel)
+
+    val taskReceiver = MarkdownTaskReceiver(texbeCompilerStub, tasksDir, publisher)
     subscribe(subscriptionId, taskReceiver)
 }

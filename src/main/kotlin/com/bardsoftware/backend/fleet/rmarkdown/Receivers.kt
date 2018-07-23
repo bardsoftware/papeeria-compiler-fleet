@@ -21,12 +21,12 @@ import com.bardsoftware.papeeria.backend.tex.TexbeGrpc
 import com.google.api.client.util.ByteStreams
 import com.google.cloud.pubsub.v1.AckReplyConsumer
 import com.google.cloud.pubsub.v1.MessageReceiver
-import com.google.common.escape.CharEscaperBuilder
 import com.google.common.io.Files
 import com.google.protobuf.ByteString
 import com.google.pubsub.v1.PubsubMessage
-import io.grpc.ManagedChannelBuilder
+import com.typesafe.config.Config
 import org.apache.commons.io.FileUtils
+import org.apache.commons.text.StringSubstitutor
 import org.slf4j.LoggerFactory
 import java.io.ByteArrayInputStream
 import java.io.File
@@ -34,7 +34,6 @@ import java.io.FileOutputStream
 import java.io.IOException
 import java.nio.file.Path
 import java.nio.file.Paths
-import java.util.*
 import java.util.zip.ZipEntry
 import java.util.zip.ZipInputStream
 
@@ -53,7 +52,7 @@ abstract class CompilerFleetMessageReceiver : MessageReceiver {
 }
 
 open class TaskReceiver(tasksDirectory: String,
-                        val resultPublisher: Publisher
+                        val resultPublisher: PublisherApi
 ) : CompilerFleetMessageReceiver() {
     protected val tasksDir: Path
     private val dockerProcessor = DockerProcessor(getDefaultDockerClient())
@@ -141,56 +140,63 @@ open class TaskReceiver(tasksDirectory: String,
 }
 
 class MarkdownTaskReceiver(
-        texbeAddress: String,
+        private val texbeCompilerStub: TexbeGrpc.TexbeBlockingStub?,
         tasksDirectory: String,
-        resultPublisher: Publisher) : TaskReceiver(tasksDirectory, resultPublisher) {
+        resultPublisher: PublisherApi,
+        private val config: Config = DEFAULT_CONFIG) : TaskReceiver(tasksDirectory, resultPublisher) {
 
-    private val texbeCompilerStub: TexbeGrpc.TexbeBlockingStub
-
-    init {
-        val channel = ManagedChannelBuilder.forTarget(texbeAddress).usePlaintext(true).build()
-        texbeCompilerStub = TexbeGrpc.newBlockingStub(channel)
-    }
+    private val arguments = listOf("projectRootAbsPath", "workingDirRelPath",
+            "inputFileName", "outputFileName", "mainFont")
+    private val COMPILE_COMMAND_KEY = "pandoc.compile.command"
 
     override fun processMessage(message: PubsubMessage): Boolean {
         val request = CompileRequest.parseFrom(message.data)
+        LOGGER.debug("Converting Markdown to tex: {}", request.mainFileName)
+
         fetchProjectFiles(request)
-        convertMarkdown(request)
+        val commandArguments = getCmdLineArguments(request)
+        val exitCode = convertMarkdown(commandArguments)
+        if (exitCode != 0) {
+            LOGGER.error("Failed to convert Markdown to tex with exitcode {}", exitCode)
+            return false
+        }
 
         val taskId = request.id
-        var isPublished = true
 
         val onPublishFailureCallback = {
             LOGGER.info("Publish $taskId failed with code ${StatusCode.FAILURE}")
-            isPublished = false
         }
 
         val data = getResultData(taskId, ByteString.copyFrom(MOCK_PDF_BYTES),
                 MOCK_FILE_NAME, StatusCode.SUCCESS.ordinal)
         resultPublisher.publish(data, onPublishFailureCallback)
-        return isPublished
+        return true
     }
 
     private fun fetchProjectFiles(request: CompileRequest) {
+        LOGGER.debug("Fetching project with {} id from texbe", request.id)
         val fetchRequest = request.toBuilder().setEngine(Engine.NONE).build()
-        texbeCompilerStub.compile(fetchRequest)
+        texbeCompilerStub?.compile(fetchRequest)
+    }
+
+    private fun getCmdLineArguments(request: CompileRequest): Map<String, String> {
+        val outputFileName = Files.getNameWithoutExtension(request.mainFileName) + ".tex"
+        val projTasks = this.tasksDir.resolve(request.id)
+        val mainFile = request.mainFileName
+        val outputFile = projTasks.resolve(outputFileName)
+        val projectRootAbsPath = this.tasksDir.toAbsolutePath().parent
+
+        val values = listOf(projectRootAbsPath.toString(), "",
+                mainFile.toString(), outputFile.toString(), PANDOC_DEFAULT_FONT)
+
+        return (arguments zip values).map { it.first to it.second }.toMap()
     }
 
     // converts Markdown into tex via pandoc
-    private fun convertMarkdown(request: CompileRequest) {
-        val outputFileName = Files.getNameWithoutExtension(request.mainFileName) + ".tex"
-        val mainFile = this.tasksDir.resolve(request.id).resolve("files")
-        runCommandLine("pandoc $mainFile -o ${this.tasksDir.resolve(outputFileName)}")
-    }
-
-    private fun runCommandLine(commandLine: String): Int {
-        LOGGER.debug("Running command line: {}", commandLine)
-        val processBuilder = ProcessBuilder().command("/bin/bash", "-c", commandLine)
-
-        processBuilder.start().let { p ->
-            val exitCode = p.waitFor()
-            LOGGER.debug("Process completed, exit code={}", exitCode)
-            return exitCode
-        }
+    private fun convertMarkdown(commandArguments: Map<String, String>): Int {
+        val substitutor = StringSubstitutor(commandArguments)
+        val rawCommandLine = config.getString(COMPILE_COMMAND_KEY)
+        val commandLine = substitutor.replace(rawCommandLine)
+        return runCommandLine(commandLine)
     }
 }
