@@ -162,17 +162,15 @@ class MarkdownTaskReceiver(
         }
 
         val taskId = request.id
-        var isPublished = true
 
         val onPublishFailureCallback = {
             LOGGER.info("Publish $taskId failed with code ${StatusCode.FAILURE}")
-            isPublished = false
         }
 
         val data = getResultData(taskId, ByteString.copyFrom(MOCK_PDF_BYTES),
                 MOCK_FILE_NAME, StatusCode.SUCCESS.ordinal)
         resultPublisher.publish(data, onPublishFailureCallback)
-        return isPublished
+        return true
     }
 
     private fun fetchProjectFiles(request: CompileRequest) {
