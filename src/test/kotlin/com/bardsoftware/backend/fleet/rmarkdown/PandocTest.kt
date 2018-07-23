@@ -25,7 +25,6 @@ import org.junit.After
 import org.junit.Before
 import org.junit.Test
 import org.mockito.Mockito
-import org.mockito.Mockito.`when`
 import java.io.File
 import java.nio.file.Paths
 import kotlin.test.assertTrue
@@ -50,9 +49,9 @@ class PandocTest {
         val publisher = mock<Publisher> {
             on { publish(any(), any()) }.then{}
         }
-
-        val mockConfig = Mockito.mock(Config::class.java)
-        `when`(mockConfig.getString(CONFIG_KEY)).thenReturn(CP_COMMAND)
+        val mockConfig = mock<Config> {
+            on { getString(CONFIG_KEY) }.thenReturn(CP_COMMAND)
+        }
         val markdownReceiver = MarkdownTaskReceiver(null, tasksDir, publisher, mockConfig)
 
         val request = CompileRequest
