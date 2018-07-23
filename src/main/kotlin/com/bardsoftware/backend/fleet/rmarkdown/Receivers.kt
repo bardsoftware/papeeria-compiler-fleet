@@ -157,7 +157,7 @@ class MarkdownTaskReceiver(
         val commandArguments = getCmdLineArguments(request)
         val exitCode = convertMarkdown(commandArguments)
         if (exitCode != 0) {
-            LOGGER.error("Failed to convert Markdown to ex with exitcode {}", exitCode)
+            LOGGER.error("Failed to convert Markdown to tex with exitcode {}", exitCode)
             return false
         }
 

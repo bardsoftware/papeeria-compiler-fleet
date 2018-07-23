@@ -38,9 +38,7 @@ class PandocTest {
 
     @Before
     fun createDir() {
-        val dir = File(this.tasksDir)
-        dir.mkdir()
-        dir.resolve(taskId).mkdir()
+        File(this.tasksDir).resolve(taskId).mkdirs()
     }
 
     @Test
