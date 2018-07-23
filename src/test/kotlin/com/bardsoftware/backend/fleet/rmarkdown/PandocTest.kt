@@ -63,11 +63,10 @@ class PandocTest {
                 .build()
                 .toByteString()
         val message = PubsubMessage.newBuilder().setData(request).build()
-        val isPublished = markdownReceiver.processMessage(message)
+        markdownReceiver.processMessage(message)
 
         verify(mockConfig, times(1)).getString(CONFIG_KEY)
         assertTrue(outputFile.exists())
-        assertTrue(isPublished)
     }
 
     @After
