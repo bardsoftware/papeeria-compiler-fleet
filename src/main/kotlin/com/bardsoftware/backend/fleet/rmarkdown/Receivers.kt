@@ -203,15 +203,14 @@ class MarkdownTaskReceiver(
     private fun compileMarkdown(request: CompileRequest, convertedMarkdown: File): CompileResponse {
         request.toBuilder().setMainFileName(convertedMarkdown.name).build()
 
-        val file = FileDto
+        val targetTex = FileDto
                 .newBuilder()
-                .setId("123") // ?
                 .setName(convertedMarkdown.name)
                 .setContents(
                         ByteString.copyFrom(FileUtils.readFileToByteArray(convertedMarkdown)))
                 .build()
 
-        request.fileRequest.toBuilder().addFile(file)
+        request.fileRequest.toBuilder().addFile(targetTex)
         return texCompiler.compile(request)
     }
 }
