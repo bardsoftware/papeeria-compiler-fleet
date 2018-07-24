@@ -138,7 +138,7 @@ open class TaskReceiver(tasksDirectory: String,
 }
 
 class MarkdownTaskReceiver(
-        private val texbeCompilerStub: TexbeGrpc.TexbeBlockingStub?,
+        private val texCompiler: CompilerApi,
         tasksDirectory: String,
         resultPublisher: PublisherApi,
         private val config: Config = DEFAULT_CONFIG) : TaskReceiver(tasksDirectory, resultPublisher) {
@@ -167,8 +167,8 @@ class MarkdownTaskReceiver(
             LOGGER.info("Publish $taskId failed with code ${StatusCode.FAILURE}")
         }
 
-        val data = getResultData(taskId, response?.pdfFile!!,
-                Files.getNameWithoutExtension(request.mainFileName) + ".pdf", response.status?.ordinal!!)
+        val data = getResultData(taskId, response.pdfFile,
+                Files.getNameWithoutExtension(request.mainFileName) + ".pdf", response.status.ordinal)
         resultPublisher.publish(data, onPublishFailureCallback)
         return true
     }
@@ -176,7 +176,7 @@ class MarkdownTaskReceiver(
     private fun fetchProjectFiles(request: CompileRequest) {
         LOGGER.debug("Fetching project with {} id from texbe", request.id)
         val fetchRequest = request.toBuilder().setEngine(Engine.NONE).build()
-        texbeCompilerStub?.compile(fetchRequest)
+        texCompiler.compile(fetchRequest)
     }
 
     private fun getCmdLineArguments(request: CompileRequest): Map<String, String> {
@@ -200,18 +200,18 @@ class MarkdownTaskReceiver(
         return runCommandLine(commandLine)
     }
 
-    private fun compileMarkdown(request: CompileRequest, convertedMarkdown: File): CompileResponse? {
+    private fun compileMarkdown(request: CompileRequest, convertedMarkdown: File): CompileResponse {
         request.toBuilder().setMainFileName(convertedMarkdown.name).build()
 
         val file = FileDto
                 .newBuilder()
-                .setId(null) // ?
+                .setId("123") // ?
                 .setName(convertedMarkdown.name)
                 .setContents(
                         ByteString.copyFrom(FileUtils.readFileToByteArray(convertedMarkdown)))
                 .build()
 
         request.fileRequest.toBuilder().addFile(file)
-        return texbeCompilerStub?.compile(request)
+        return texCompiler.compile(request)
     }
 }

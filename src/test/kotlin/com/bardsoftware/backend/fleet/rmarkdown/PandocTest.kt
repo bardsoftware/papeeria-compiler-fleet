@@ -16,7 +16,9 @@
 package com.bardsoftware.backend.fleet.rmarkdown
 
 import com.bardsoftware.papeeria.backend.tex.CompileRequest
+import com.bardsoftware.papeeria.backend.tex.CompileResponse
 import com.google.common.io.Files
+import com.google.protobuf.ByteString
 import com.google.pubsub.v1.PubsubMessage
 import com.nhaarman.mockitokotlin2.any
 import com.nhaarman.mockitokotlin2.mock
@@ -53,7 +55,18 @@ class PandocTest {
         val mockConfig = mock<Config> {
             on { getString(CONFIG_KEY) }.thenReturn(CP_COMMAND)
         }
-        val markdownReceiver = MarkdownTaskReceiver(null, tasksDir, publisher, mockConfig)
+
+        val pdf = Paths.get("src", "main", "resources", "example.pdf").toFile()
+        val mockResponse = CompileResponse
+                .newBuilder()
+                .setPdfFile(ByteString.readFrom(pdf.inputStream()))
+                .setStatus(CompileResponse.Status.OK)
+                .build()
+        val mockCompiler = mock<CompilerApi> {
+            on { compile(any()) }.thenReturn(mockResponse)
+        }
+
+        val markdownReceiver = MarkdownTaskReceiver(mockCompiler, tasksDir, publisher, mockConfig)
 
         val request = CompileRequest
                 .newBuilder()
