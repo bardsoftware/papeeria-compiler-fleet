@@ -15,9 +15,7 @@
  */
 package com.bardsoftware.backend.fleet.rmarkdown
 
-import com.bardsoftware.papeeria.backend.tex.CompileRequest
-import com.bardsoftware.papeeria.backend.tex.Engine
-import com.bardsoftware.papeeria.backend.tex.TexbeGrpc
+import com.bardsoftware.papeeria.backend.tex.*
 import com.google.api.client.util.ByteStreams
 import com.google.cloud.pubsub.v1.AckReplyConsumer
 import com.google.cloud.pubsub.v1.MessageReceiver
@@ -161,14 +159,16 @@ class MarkdownTaskReceiver(
             return false
         }
 
+        val convertedMarkdown = File(commandArguments["outputFileName"])
+        val response = compileMarkdown(request, convertedMarkdown)
         val taskId = request.id
 
         val onPublishFailureCallback = {
             LOGGER.info("Publish $taskId failed with code ${StatusCode.FAILURE}")
         }
 
-        val data = getResultData(taskId, ByteString.copyFrom(MOCK_PDF_BYTES),
-                MOCK_FILE_NAME, StatusCode.SUCCESS.ordinal)
+        val data = getResultData(taskId, response?.pdfFile!!,
+                Files.getNameWithoutExtension(request.mainFileName) + ".pdf", response.status?.ordinal!!)
         resultPublisher.publish(data, onPublishFailureCallback)
         return true
     }
@@ -198,5 +198,20 @@ class MarkdownTaskReceiver(
         val rawCommandLine = config.getString(COMPILE_COMMAND_KEY)
         val commandLine = substitutor.replace(rawCommandLine)
         return runCommandLine(commandLine)
+    }
+
+    private fun compileMarkdown(request: CompileRequest, convertedMarkdown: File): CompileResponse? {
+        request.toBuilder().setMainFileName(convertedMarkdown.name).build()
+
+        val file = FileDto
+                .newBuilder()
+                .setId(null) // ?
+                .setName(convertedMarkdown.name)
+                .setContents(
+                        ByteString.copyFrom(FileUtils.readFileToByteArray(convertedMarkdown)))
+                .build()
+
+        request.fileRequest.toBuilder().addFile(file)
+        return texbeCompilerStub?.compile(request)
     }
 }
