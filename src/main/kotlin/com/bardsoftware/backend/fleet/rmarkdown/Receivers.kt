@@ -160,7 +160,7 @@ class MarkdownTaskReceiver(
         }
 
         val convertedMarkdown = File(commandArguments["outputFileName"])
-        val response = compileMarkdown(request, convertedMarkdown)
+        val response = compileTex(request, convertedMarkdown)
         val taskId = request.id
 
         val onPublishFailureCallback = {
@@ -200,14 +200,14 @@ class MarkdownTaskReceiver(
         return runCommandLine(commandLine)
     }
 
-    private fun compileMarkdown(request: CompileRequest, convertedMarkdown: File): CompileResponse {
-        request.toBuilder().setMainFileName(convertedMarkdown.name).build()
+    private fun compileTex(request: CompileRequest, tex: File): CompileResponse {
+        request.toBuilder().setMainFileName(tex.name).build()
 
         val targetTex = FileDto
                 .newBuilder()
-                .setName(convertedMarkdown.name)
+                .setName(tex.name)
                 .setContents(
-                        ByteString.copyFrom(FileUtils.readFileToByteArray(convertedMarkdown)))
+                        ByteString.copyFrom(FileUtils.readFileToByteArray(tex)))
                 .build()
 
         request.fileRequest.toBuilder().addFile(targetTex)
