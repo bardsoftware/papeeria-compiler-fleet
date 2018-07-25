@@ -16,18 +16,18 @@
 package com.bardsoftware.backend.fleet.rmarkdown
 
 import com.bardsoftware.papeeria.backend.tex.CompileRequest
+import com.bardsoftware.papeeria.backend.tex.CompileResponse
 import com.google.common.io.Files
+import com.google.protobuf.ByteString
 import com.google.pubsub.v1.PubsubMessage
-import com.nhaarman.mockitokotlin2.any
-import com.nhaarman.mockitokotlin2.mock
-import com.nhaarman.mockitokotlin2.times
-import com.nhaarman.mockitokotlin2.verify
+import com.nhaarman.mockitokotlin2.*
 import com.typesafe.config.Config
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
 import java.io.File
 import java.nio.file.Paths
+import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 class PandocTest {
@@ -53,8 +53,18 @@ class PandocTest {
         val mockConfig = mock<Config> {
             on { getString(CONFIG_KEY) }.thenReturn(CP_COMMAND)
         }
-        val markdownReceiver = MarkdownTaskReceiver(null, tasksDir, publisher, mockConfig)
 
+        val pdf = Paths.get("src", "main", "resources", "example.pdf").toFile()
+        val mockResponse = CompileResponse
+                .newBuilder()
+                .setPdfFile(ByteString.readFrom(pdf.inputStream()))
+                .setStatus(CompileResponse.Status.OK)
+                .build()
+        val mockCompiler = mock<CompilerApi> {
+            on { compile(any()) }.thenReturn(mockResponse)
+        }
+
+        val markdownReceiver = MarkdownTaskReceiver(mockCompiler, tasksDir, publisher, mockConfig)
         val request = CompileRequest
                 .newBuilder()
                 .setMainFileName(source)
@@ -66,6 +76,10 @@ class PandocTest {
         markdownReceiver.processMessage(message)
 
         verify(mockConfig, times(1)).getString(CONFIG_KEY)
+
+        val expectedStatus = CompilerFleet.CompilerFleetResult.Status.OK
+        verify(publisher).publish(argThat {
+            CompilerFleet.CompilerFleetResult.parseFrom(this).statusCode == expectedStatus }, any())
         assertTrue(outputFile.exists())
     }
 

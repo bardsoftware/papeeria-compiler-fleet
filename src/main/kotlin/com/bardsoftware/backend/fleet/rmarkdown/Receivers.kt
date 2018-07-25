@@ -15,9 +15,7 @@
  */
 package com.bardsoftware.backend.fleet.rmarkdown
 
-import com.bardsoftware.papeeria.backend.tex.CompileRequest
-import com.bardsoftware.papeeria.backend.tex.Engine
-import com.bardsoftware.papeeria.backend.tex.TexbeGrpc
+import com.bardsoftware.papeeria.backend.tex.*
 import com.google.api.client.util.ByteStreams
 import com.google.cloud.pubsub.v1.AckReplyConsumer
 import com.google.cloud.pubsub.v1.MessageReceiver
@@ -140,7 +138,7 @@ open class TaskReceiver(tasksDirectory: String,
 }
 
 class MarkdownTaskReceiver(
-        private val texbeCompilerStub: TexbeGrpc.TexbeBlockingStub?,
+        private val texCompiler: CompilerApi,
         tasksDirectory: String,
         resultPublisher: PublisherApi,
         private val config: Config = DEFAULT_CONFIG) : TaskReceiver(tasksDirectory, resultPublisher) {
@@ -161,14 +159,16 @@ class MarkdownTaskReceiver(
             return false
         }
 
+        val convertedMarkdown = File(commandArguments["outputFileName"])
+        val response = compileTex(request, convertedMarkdown)
         val taskId = request.id
 
         val onPublishFailureCallback = {
             LOGGER.info("Publish $taskId failed with code ${StatusCode.FAILURE}")
         }
 
-        val data = getResultData(taskId, ByteString.copyFrom(MOCK_PDF_BYTES),
-                MOCK_FILE_NAME, StatusCode.SUCCESS.ordinal)
+        val data = getResultData(taskId, response.pdfFile,
+                Files.getNameWithoutExtension(request.mainFileName) + ".pdf", response.status.ordinal)
         resultPublisher.publish(data, onPublishFailureCallback)
         return true
     }
@@ -176,7 +176,7 @@ class MarkdownTaskReceiver(
     private fun fetchProjectFiles(request: CompileRequest) {
         LOGGER.debug("Fetching project with {} id from texbe", request.id)
         val fetchRequest = request.toBuilder().setEngine(Engine.NONE).build()
-        texbeCompilerStub?.compile(fetchRequest)
+        texCompiler.compile(fetchRequest)
     }
 
     private fun getCmdLineArguments(request: CompileRequest): Map<String, String> {
@@ -198,5 +198,19 @@ class MarkdownTaskReceiver(
         val rawCommandLine = config.getString(COMPILE_COMMAND_KEY)
         val commandLine = substitutor.replace(rawCommandLine)
         return runCommandLine(commandLine)
+    }
+
+    private fun compileTex(request: CompileRequest, tex: File): CompileResponse {
+        request.toBuilder().setMainFileName(tex.name).build()
+
+        val targetTex = FileDto
+                .newBuilder()
+                .setName(tex.name)
+                .setContents(
+                        ByteString.copyFrom(FileUtils.readFileToByteArray(tex)))
+                .build()
+
+        request.fileRequest.toBuilder().addFile(targetTex)
+        return texCompiler.compile(request)
     }
 }

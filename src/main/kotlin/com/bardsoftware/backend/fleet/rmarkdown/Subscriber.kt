@@ -15,6 +15,8 @@
  */
 package com.bardsoftware.backend.fleet.rmarkdown
 
+import com.bardsoftware.papeeria.backend.tex.CompileRequest
+import com.bardsoftware.papeeria.backend.tex.CompileResponse
 import com.bardsoftware.papeeria.backend.tex.TexbeGrpc
 import com.google.cloud.ServiceOptions
 import com.google.cloud.pubsub.v1.Subscriber
@@ -68,6 +70,27 @@ fun subscribe(subscription: String, receiver: CompilerFleetMessageReceiver) {
     }
 }
 
+interface CompilerApi {
+    fun compile(request: CompileRequest): CompileResponse
+}
+
+class CompilerImpl(address: String) : CompilerApi {
+    val texbeCompilerStub: TexbeGrpc.TexbeBlockingStub
+
+    init {
+        val channel = ManagedChannelBuilder
+                .forTarget(address)
+                .usePlaintext(true)
+                .build()
+        texbeCompilerStub = TexbeGrpc.newBlockingStub(channel)
+    }
+
+    override fun compile(request: CompileRequest): CompileResponse {
+        return texbeCompilerStub.compile(request)
+    }
+
+}
+
 fun main(args: Array<String>) = mainBody {
     val parsedArgs = ArgParser(args).parseInto(::SubscriberArgs)
     val subscriptionId = parsedArgs.subscription
@@ -75,13 +98,7 @@ fun main(args: Array<String>) = mainBody {
     val resultTopic = parsedArgs.resultTopic
 
     val publisher = Publisher(resultTopic)
-
-    val channel = ManagedChannelBuilder
-            .forTarget(parsedArgs.texbeAddress)
-            .usePlaintext(true)
-            .build()
-    val texbeCompilerStub = TexbeGrpc.newBlockingStub(channel)
-
-    val taskReceiver = MarkdownTaskReceiver(texbeCompilerStub, tasksDir, publisher)
+    val compiler = CompilerImpl(parsedArgs.texbeAddress)
+    val taskReceiver = MarkdownTaskReceiver(compiler, tasksDir, publisher)
     subscribe(subscriptionId, taskReceiver)
 }
