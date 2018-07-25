@@ -15,6 +15,7 @@
  */
 package com.bardsoftware.backend.fleet.rmarkdown
 
+import com.bardsoftware.backend.fleet.rmarkdown.CompilerFleet.CompilerFleetResult.Status.forNumber
 import com.google.api.core.ApiFutureCallback
 import com.google.api.core.ApiFutures
 import com.google.cloud.ServiceOptions
@@ -29,7 +30,7 @@ fun getResultData(taskId: String, compiledBytes: ByteString, outputFileName: Str
             .setTaskId(taskId)
             .setResultBytes(compiledBytes)
             .setOutputFileName(outputFileName)
-            .setStatusCode(statusCode)
+            .setStatusCode(forNumber(statusCode))
             .build()
             .toByteString()
 }

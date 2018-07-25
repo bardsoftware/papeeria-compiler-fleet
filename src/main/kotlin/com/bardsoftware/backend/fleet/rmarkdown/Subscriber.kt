@@ -74,7 +74,7 @@ interface CompilerApi {
     fun compile(request: CompileRequest): CompileResponse
 }
 
-class Compiler(address: String) : CompilerApi {
+class CompilerImpl(address: String) : CompilerApi {
     val texbeCompilerStub: TexbeGrpc.TexbeBlockingStub
 
     init {
@@ -98,7 +98,7 @@ fun main(args: Array<String>) = mainBody {
     val resultTopic = parsedArgs.resultTopic
 
     val publisher = Publisher(resultTopic)
-    val compiler = Compiler(parsedArgs.texbeAddress)
+    val compiler = CompilerImpl(parsedArgs.texbeAddress)
     val taskReceiver = MarkdownTaskReceiver(compiler, tasksDir, publisher)
     subscribe(subscriptionId, taskReceiver)
 }

@@ -42,5 +42,17 @@ message CompilerFleetResult {
     string taskId = 1;
     bytes resultBytes = 2;
     string outputFileName = 3;
-    int32 statusCode = 4;
+
+    enum Status {
+        OK = 0;
+        SUBMITTED = 1;
+        COMPILING = 2;
+        TIMEOUT = 3;
+        FAILED = 4;
+        CANCELLED = 5;
+        LOCAL_STORAGE_FAILURE = 6;
+        REMOTE_STORAGE_FAILURE = 7;
+        DISK_QUOTA_EXCEEDED = 8;
+    }
+    Status statusCode = 4;
 }
