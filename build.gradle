@@ -91,7 +91,7 @@ task makeJar(type: Jar) {
     dependsOn 'generateProto'
     dependsOn compileJava
     from ('build/classes/java/main')
-    archiveName = '${rootProject.name}.jar'
+    archiveName = '${rootProject.name}-proto.jar'
 }
 
 mainClassName = 'com.bardsoftware.backend.fleet.rmarkdown.SubscriberKt'
