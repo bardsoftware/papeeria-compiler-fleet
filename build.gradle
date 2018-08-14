@@ -26,7 +26,7 @@ repositories {
 
 distributions {
     main {
-        baseName = 'papeeria-compiler-fleet'
+        baseName = "${rootProject.name}"
     }
 }
 
@@ -91,7 +91,7 @@ task makeJar(type: Jar) {
     dependsOn 'generateProto'
     dependsOn compileJava
     from ('build/classes/java/main')
-    archiveName = 'compiler-fleet-proto.jar'
+    archiveName = '${rootProject.name}.jar'
 }
 
 mainClassName = 'com.bardsoftware.backend.fleet.rmarkdown.SubscriberKt'
