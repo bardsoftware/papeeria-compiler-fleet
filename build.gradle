@@ -1,5 +1,5 @@
 group 'papeeria-compiler-fleet'
-version '1.0-SNAPSHOT'
+version "${version}"
 
 buildscript {
     ext.kotlin_version = '1.2.+'
@@ -26,7 +26,7 @@ repositories {
 
 distributions {
     main {
-        baseName = 'papeeria-compiler-fleet'
+        baseName = "${rootProject.name}"
     }
 }
 
@@ -91,7 +91,7 @@ task makeJar(type: Jar) {
     dependsOn 'generateProto'
     dependsOn compileJava
     from ('build/classes/java/main')
-    archiveName = 'compiler-fleet-proto.jar'
+    archiveName = '${rootProject.name}-proto.jar'
 }
 
 mainClassName = 'com.bardsoftware.backend.fleet.rmarkdown.SubscriberKt'
