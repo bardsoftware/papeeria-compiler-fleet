@@ -23,6 +23,7 @@ import com.google.common.io.Files
 import com.google.protobuf.ByteString
 import com.google.pubsub.v1.PubsubMessage
 import com.typesafe.config.Config
+import org.apache.commons.lang.StringUtils
 import org.apache.commons.io.FileUtils
 import org.apache.commons.text.StringSubstitutor
 import org.slf4j.LoggerFactory
@@ -32,6 +33,7 @@ import java.io.FileOutputStream
 import java.io.IOException
 import java.nio.file.Path
 import java.nio.file.Paths
+import java.util.*
 import java.util.zip.ZipEntry
 import java.util.zip.ZipInputStream
 
@@ -159,9 +161,11 @@ class MarkdownTaskReceiver(
             return false
         }
 
-        val convertedMarkdown = File(commandArguments["outputFileName"])
+        val outputName = Files.getNameWithoutExtension(request.mainFileName) + ".tex"
+        val convertedMarkdown = this.tasksDir.resolve(request.id).resolve("files").resolve(outputName).toFile()
         val response = compileTex(request, convertedMarkdown)
         val taskId = request.id
+        println(request.mainFileName + " compiled into pdf")
 
         val onPublishFailureCallback = {
             LOGGER.info("Publish $taskId failed with code ${StatusCode.FAILURE}")
@@ -181,15 +185,12 @@ class MarkdownTaskReceiver(
 
     private fun getCmdLineArguments(request: CompileRequest): Map<String, String> {
         val outputFileName = Files.getNameWithoutExtension(request.mainFileName) + ".tex"
-        val projTasks = this.tasksDir.resolve(request.id)
-        val mainFile = request.mainFileName
-        val outputFile = projTasks.resolve(outputFileName)
-        val projectRootAbsPath = this.tasksDir.toAbsolutePath().parent
+        val projTasks = this.tasksDir.resolve(request.id).resolve("files")
+        val mainFile = StringUtils.stripStart(request.mainFileName, "/")
+        val values = listOf(projTasks.toString(), "",
+                mainFile, outputFileName, PANDOC_DEFAULT_FONT)
 
-        val values = listOf(projectRootAbsPath.toString(), "",
-                mainFile.toString(), outputFile.toString(), PANDOC_DEFAULT_FONT)
-
-        return (arguments zip values).map { it.first to it.second }.toMap()
+        return (arguments zip values).map { it.first to "\"${it.second}\"" }.toMap()
     }
 
     // converts Markdown into tex via pandoc
@@ -197,20 +198,24 @@ class MarkdownTaskReceiver(
         val substitutor = StringSubstitutor(commandArguments)
         val rawCommandLine = config.getString(COMPILE_COMMAND_KEY)
         val commandLine = substitutor.replace(rawCommandLine)
-        return runCommandLine(commandLine)
+        return runCommandLine(commandLine.replace("\\", ""))
     }
 
     private fun compileTex(request: CompileRequest, tex: File): CompileResponse {
-        request.toBuilder().setMainFileName(tex.name).build()
-
         val targetTex = FileDto
                 .newBuilder()
                 .setName(tex.name)
-                .setContents(
-                        ByteString.copyFrom(FileUtils.readFileToByteArray(tex)))
                 .build()
 
-        request.fileRequest.toBuilder().addFile(targetTex)
-        return texCompiler.compile(request)
+        println(tex.name)
+        request.fileRequest.toBuilder().addFile(targetTex).build()
+        val texRequest = 
+                request.toBuilder()
+                       .setMainFileName(tex.name)
+                       .setOutputBaseName(Files.getNameWithoutExtension(tex.name))
+                       .setFileRequest(request.fileRequest.toBuilder().addFile(targetTex).build())
+                       .setIsFilesSaved(true)
+                       .build()
+        return texCompiler.compile(texRequest)
     }
 }
