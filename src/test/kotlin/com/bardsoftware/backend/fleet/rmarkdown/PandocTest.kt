@@ -31,21 +31,21 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 class PandocTest {
-    private val CP_COMMAND = "cp \${projectRootAbsPath}/\${workingDirRelPath}/\${inputFileName} \${outputFileName}"
+    private val CP_COMMAND = "cp \${inputFileName} \${projectRootAbsPath}/\${workingDirRelPath}/\${outputFileName}"
     private val CONFIG_KEY = "pandoc.compile.command"
     private val tasksDir = "tasks"
     private val taskId = "taskId"
 
     @Before
     fun createDir() {
-        File(this.tasksDir).resolve(taskId).mkdirs()
+        File(this.tasksDir).resolve(taskId).resolve("files").mkdirs()
     }
 
     @Test
     fun basicCompile() {
         val source = Paths.get("src", "test", "resources", "example.Rmd").toString()
         val outputName = Files.getNameWithoutExtension(source) + ".tex"
-        val outputFile = Paths.get(tasksDir).resolve(taskId).resolve(outputName).toFile()
+        val outputFile = Paths.get(tasksDir).resolve(taskId).resolve("files").resolve(outputName).toFile()
 
         val publisher = mock<PublisherApi> {
             on { publish(any(), any()) }.then{}
