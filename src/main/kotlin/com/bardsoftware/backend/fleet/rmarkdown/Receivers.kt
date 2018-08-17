@@ -165,7 +165,6 @@ class MarkdownTaskReceiver(
         val convertedMarkdown = this.tasksDir.resolve(request.id).resolve("files").resolve(outputName).toFile()
         val response = compileTex(request, convertedMarkdown)
         val taskId = request.id
-        println(request.mainFileName + " compiled into pdf")
 
         val onPublishFailureCallback = {
             LOGGER.info("Publish $taskId failed with code ${StatusCode.FAILURE}")
@@ -207,7 +206,6 @@ class MarkdownTaskReceiver(
                 .setName(tex.name)
                 .build()
 
-        println(tex.name)
         request.fileRequest.toBuilder().addFile(targetTex).build()
         val texRequest = 
                 request.toBuilder()
