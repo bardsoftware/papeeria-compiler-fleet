@@ -162,7 +162,11 @@ class MarkdownTaskReceiver(
         }
 
         val outputName = Files.getNameWithoutExtension(request.mainFileName) + ".tex"
-        val convertedMarkdown = this.tasksDir.resolve(request.id).resolve("files").resolve(outputName).toFile()
+        val convertedMarkdown = this.tasksDir
+                .resolve(request.id)
+                .resolve("files")
+                .resolve(outputName)
+                .toFile()
         val response = compileTex(request, convertedMarkdown)
         val taskId = request.id
 
@@ -211,7 +215,8 @@ class MarkdownTaskReceiver(
                 request.toBuilder()
                        .setMainFileName(tex.name)
                        .setOutputBaseName(Files.getNameWithoutExtension(tex.name))
-                       .setFileRequest(request.fileRequest.toBuilder().addFile(targetTex).build())
+                       .setFileRequest(request.fileRequest
+                               .toBuilder().addFile(targetTex).build())
                        .setIsFilesSaved(true)
                        .build()
         return texCompiler.compile(texRequest)
