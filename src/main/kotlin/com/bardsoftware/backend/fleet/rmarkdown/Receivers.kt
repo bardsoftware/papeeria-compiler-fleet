@@ -201,9 +201,9 @@ class MarkdownTaskReceiver(
     // converts Markdown into tex via pandoc
     private fun convertMarkdown(commandArguments: Map<String, String>): Int {
         val substitutor = StringSubstitutor(commandArguments)
-        val rawCommandLine = config.getString(COMPILE_COMMAND_KEY)
+        val rawCommandLine = config.getString(COMPILE_COMMAND_KEY).replace("\\", "")
         val commandLine = substitutor.replace(rawCommandLine)
-        return runCommandLine(commandLine.replace("\\", ""))
+        return runCommandLine(commandLine)
     }
 
     private fun compileTex(request: CompileRequest, tex: File): CompileResponse {
@@ -212,14 +212,12 @@ class MarkdownTaskReceiver(
                 .setName(tex.name)
                 .build()
 
-        request.fileRequest.toBuilder().addFile(targetTex).build()
         val texRequest = 
                 request.toBuilder()
                        .setMainFileName(tex.name)
-                       .setOutputBaseName(Files.getNameWithoutExtension(tex.name))
                        .setFileRequest(request.fileRequest
                                .toBuilder().addFile(targetTex).build())
-                       .setIsFilesSaved(true)
+                       .setSkipFetchFiles(true)
                        .build()
         return texCompiler.compile(texRequest)
     }
