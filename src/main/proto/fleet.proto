@@ -36,10 +36,6 @@ message CompilerFleetRequest {
     string rootFileName = 3;
     Engine engine = 4;
     Compiler compiler = 5;
-    string projectId = 6;
-    string fileId = 7;
-    string editSessionId = 8;
-    int32 flags = 9;
 }
 
 message CompilerFleetResult {
@@ -61,7 +57,7 @@ message CompilerFleetResult {
     Status statusCode = 4;
     Engine engine = 5;
     string projectId = 6;
-    string fileId = 7;
+    string mainFileId = 7;
     string editSessionId = 8;
-    int32 flags = 9;
+    uint32 flags = 9;
 }

@@ -16,6 +16,8 @@
 package com.bardsoftware.backend.fleet.rmarkdown
 
 import com.bardsoftware.backend.fleet.rmarkdown.CompilerFleet.CompilerFleetResult.Status.forNumber
+import com.bardsoftware.papeeria.backend.tex.CompileRequest
+import com.bardsoftware.papeeria.backend.tex.CompileResponse
 import com.google.api.core.ApiFutureCallback
 import com.google.api.core.ApiFutures
 import com.google.cloud.ServiceOptions
@@ -25,12 +27,27 @@ import com.google.pubsub.v1.PubsubMessage
 import com.google.pubsub.v1.TopicName
 import org.slf4j.LoggerFactory
 
-fun getResultData(taskId: String, compiledBytes: ByteString, outputFileName: String, statusCode: Int): ByteString {
+fun buildResultData(taskId: String, compiledBytes: ByteString, outputFileName: String, statusCode: Int): ByteString {
     return CompilerFleet.CompilerFleetResult.newBuilder()
             .setTaskId(taskId)
             .setResultBytes(compiledBytes)
             .setOutputFileName(outputFileName)
             .setStatusCode(forNumber(statusCode))
+            .build()
+            .toByteString()
+}
+
+fun buildResultData(request: CompileRequest, response: CompileResponse): ByteString {
+    return CompilerFleet.CompilerFleetResult.newBuilder()
+            .setTaskId(request.id)
+            .setResultBytes(response.pdfFile)
+            .setOutputFileName(request.outputBaseName)
+            .setStatusCode(forNumber(response.status.ordinal))
+            .setEngine(CompilerFleet.Engine.valueOf(request.engine.name))
+            .setProjectId(request.projectId)
+            .setMainFileId(request.mainFileId)
+            .setEditSessionId(request.editSessionId)
+            .setFlags(request.flags)
             .build()
             .toByteString()
 }

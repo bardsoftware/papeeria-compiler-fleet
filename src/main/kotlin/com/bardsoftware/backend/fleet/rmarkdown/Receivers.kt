@@ -134,7 +134,7 @@ open class TaskReceiver(tasksDirectory: String,
             isPublished = false
         }
 
-        val data = getResultData(taskId, compiledBytes, outputFileName, StatusCode.SUCCESS.ordinal)
+        val data = buildResultData(taskId, compiledBytes, outputFileName, StatusCode.SUCCESS.ordinal)
         resultPublisher.publish(data, onPublishFailureCallback)
 
         return isPublished
@@ -176,8 +176,7 @@ class MarkdownTaskReceiver(
             LOGGER.info("Publish $taskId failed with code ${StatusCode.FAILURE}")
         }
 
-        val data = getResultData(taskId, response.pdfFile,
-                Files.getNameWithoutExtension(request.mainFileName) + ".pdf", response.status.ordinal)
+        val data = buildResultData(request, response)
         resultPublisher.publish(data, onPublishFailureCallback)
         return true
     }
