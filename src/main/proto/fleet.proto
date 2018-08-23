@@ -56,8 +56,9 @@ message CompilerFleetResult {
     }
     Status statusCode = 4;
     Engine engine = 5;
-    string projectId = 6;
-    string mainFileId = 7;
-    string editSessionId = 8;
-    uint32 flags = 9;
+    string userId = 6;
+    string projectId = 7;
+    string mainFileId = 8;
+    string editSessionId = 9;
+    uint32 flags = 10;
 }

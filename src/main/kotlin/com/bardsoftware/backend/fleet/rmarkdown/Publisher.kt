@@ -50,6 +50,7 @@ fun buildResultData(request: CompileRequest, response: CompileResponse): ByteStr
             .setOutputFileName(request.outputBaseName)
             .setStatusCode(forNumber(response.status.ordinal))
             .setEngine(engine)
+            .setUserId(request.userId)
             .setProjectId(request.projectId)
             .setMainFileId(request.mainFileId)
             .setEditSessionId(request.editSessionId)
