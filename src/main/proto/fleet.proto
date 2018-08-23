@@ -36,6 +36,10 @@ message CompilerFleetRequest {
     string rootFileName = 3;
     Engine engine = 4;
     Compiler compiler = 5;
+    string projectId = 6;
+    string fileId = 7;
+    string editSessionId = 8;
+    int32 flags = 9;
 }
 
 message CompilerFleetResult {
@@ -55,4 +59,9 @@ message CompilerFleetResult {
         DISK_QUOTA_EXCEEDED = 8;
     }
     Status statusCode = 4;
+    Engine engine = 5;
+    string projectId = 6;
+    string fileId = 7;
+    string editSessionId = 8;
+    int32 flags = 9;
 }
