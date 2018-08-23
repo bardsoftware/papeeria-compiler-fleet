@@ -38,12 +38,18 @@ fun buildResultData(taskId: String, compiledBytes: ByteString, outputFileName: S
 }
 
 fun buildResultData(request: CompileRequest, response: CompileResponse): ByteString {
+    val engine = try {
+        CompilerFleet.Engine.valueOf(request.engine.name)
+    } catch (exception: IllegalArgumentException) {
+        CompilerFleet.Engine.XELATEX
+    }
+
     return CompilerFleet.CompilerFleetResult.newBuilder()
             .setTaskId(request.id)
             .setResultBytes(response.pdfFile)
             .setOutputFileName(request.outputBaseName)
             .setStatusCode(forNumber(response.status.ordinal))
-            .setEngine(CompilerFleet.Engine.valueOf(request.engine.name))
+            .setEngine(engine)
             .setProjectId(request.projectId)
             .setMainFileId(request.mainFileId)
             .setEditSessionId(request.editSessionId)
