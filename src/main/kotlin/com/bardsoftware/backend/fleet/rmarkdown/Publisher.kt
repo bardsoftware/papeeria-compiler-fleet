@@ -15,7 +15,6 @@
  */
 package com.bardsoftware.backend.fleet.rmarkdown
 
-import com.bardsoftware.backend.fleet.rmarkdown.CompilerFleet.CompilerFleetResult.Status.forNumber
 import com.bardsoftware.papeeria.backend.tex.CompileRequest
 import com.bardsoftware.papeeria.backend.tex.CompileResponse
 import com.google.api.core.ApiFutureCallback
@@ -28,11 +27,15 @@ import com.google.pubsub.v1.TopicName
 import org.slf4j.LoggerFactory
 
 fun buildResultData(taskId: String, compiledBytes: ByteString, outputFileName: String, statusCode: Int): ByteString {
+    val texbeResponse = CompileResponse.newBuilder()
+            .setPdfFile(compiledBytes)
+            .setStatus(CompileResponse.Status.forNumber(statusCode))
+            .build()
+
     return CompilerFleet.CompilerFleetResult.newBuilder()
             .setTaskId(taskId)
-            .setResultBytes(compiledBytes)
+            .setTexbeResponse(texbeResponse.toByteString())
             .setOutputFileName(outputFileName)
-            .setStatusCode(forNumber(statusCode))
             .build()
             .toByteString()
 }
@@ -46,9 +49,8 @@ fun buildResultData(request: CompileRequest, response: CompileResponse): ByteStr
 
     return CompilerFleet.CompilerFleetResult.newBuilder()
             .setTaskId(request.id)
-            .setResultBytes(response.pdfFile)
+            .setTexbeResponse(response.toByteString())
             .setOutputFileName(request.outputBaseName)
-            .setStatusCode(forNumber(response.status.ordinal))
             .setEngine(engine)
             .setUserId(request.userId)
             .setProjectId(request.projectId)

@@ -76,9 +76,10 @@ class PandocTest {
 
         verify(mockConfig, times(1)).getString(CONFIG_KEY)
 
-        val expectedStatus = CompilerFleet.CompilerFleetResult.Status.OK
         verify(publisher).publish(argThat {
-            CompilerFleet.CompilerFleetResult.parseFrom(this).statusCode == expectedStatus }, any())
+            val result = CompilerFleet.CompilerFleetResult.parseFrom(this)
+            CompileResponse.parseFrom(result.toByteString()).status == CompileResponse.Status.OK
+        }, any())
         assertTrue(outputFile.exists())
     }
 

@@ -40,25 +40,12 @@ message CompilerFleetRequest {
 
 message CompilerFleetResult {
     string taskId = 1;
-    bytes resultBytes = 2;
-    string outputFileName = 3;
-
-    enum Status {
-        OK = 0;
-        SUBMITTED = 1;
-        COMPILING = 2;
-        TIMEOUT = 3;
-        FAILED = 4;
-        CANCELLED = 5;
-        LOCAL_STORAGE_FAILURE = 6;
-        REMOTE_STORAGE_FAILURE = 7;
-        DISK_QUOTA_EXCEEDED = 8;
-    }
-    Status statusCode = 4;
-    Engine engine = 5;
-    string userId = 6;
-    string projectId = 7;
-    string mainFileId = 8;
-    string editSessionId = 9;
-    uint32 flags = 10;
+    string outputFileName = 2;
+    Engine engine = 3;
+    string userId = 4;
+    string projectId = 5;
+    string mainFileId = 6;
+    string editSessionId = 7;
+    uint32 flags = 8;
+    bytes texbeResponse = 9;
 }

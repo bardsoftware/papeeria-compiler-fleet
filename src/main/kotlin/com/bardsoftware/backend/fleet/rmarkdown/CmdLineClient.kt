@@ -15,6 +15,7 @@
  */
 package com.bardsoftware.backend.fleet.rmarkdown
 
+import com.bardsoftware.papeeria.backend.tex.CompileResponse
 import com.google.protobuf.ByteString
 import com.google.pubsub.v1.PubsubMessage
 import com.xenomachina.argparser.ArgParser
@@ -107,7 +108,8 @@ class ResultReceiver(
             return false
         }
 
-        FileUtils.writeByteArrayToFile(outputFile, result.resultBytes.toByteArray())
+        val pdfFile = CompileResponse.parseFrom(result.texbeResponse).pdfFile
+        FileUtils.writeByteArrayToFile(outputFile, pdfFile.toByteArray())
 
         LOGGER.info("Result received and written into {}", outputFile.name)
         System.exit(0)
