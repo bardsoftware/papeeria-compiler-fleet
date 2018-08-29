@@ -15,10 +15,7 @@
  */
 package com.bardsoftware.backend.fleet.rmarkdown
 
-import com.bardsoftware.papeeria.backend.tex.CompileRequest
-import com.bardsoftware.papeeria.backend.tex.CompileResponse
-import com.bardsoftware.papeeria.backend.tex.Engine
-import com.bardsoftware.papeeria.backend.tex.FileDto
+import com.bardsoftware.papeeria.backend.tex.*
 import com.google.api.client.util.ByteStreams
 import com.google.cloud.pubsub.v1.AckReplyConsumer
 import com.google.cloud.pubsub.v1.MessageReceiver
@@ -142,6 +139,40 @@ open class TaskReceiver(tasksDirectory: String,
     }
 }
 
+private val currentTasks = ConcurrentHashMap<String, Future<Boolean>>()
+
+class CancelTaskReceiver(
+        tasksDirectory: String,
+        resultPublisher: PublisherApi) : TaskReceiver(tasksDirectory, resultPublisher) {
+
+    override fun processMessage(message: PubsubMessage): Boolean {
+        val request = CancelRequestProto.parseFrom(message.data)
+
+        val status = if (!currentTasks.contains(request.taskId)) {
+            LOGGER.debug("No task with id={} to cancel", request.taskId)
+            CancelResponseProto.Status.NOT_FOUND
+        } else {
+            val result = currentTasks[request.taskId]?.cancel(true)!!
+
+            if (result) {
+                CancelResponseProto.Status.OK
+            } else {
+                CancelResponseProto.Status.FAILED
+            }
+        }
+
+        // TODO: add cpu time
+        val data = CancelResponseProto.newBuilder().setStatus(status).build().toByteString()
+        val onPublishFailureCallback = {
+            LOGGER.info("Publish cancel task ${request.taskId} response failed with code ${StatusCode.FAILURE}")
+        }
+
+        resultPublisher.publish(data, onPublishFailureCallback)
+        return true
+    }
+
+}
+
 class MarkdownTaskReceiver(
         private val texCompiler: CompilerApi,
         tasksDirectory: String,
@@ -152,7 +183,6 @@ class MarkdownTaskReceiver(
             "inputFileName", "outputFileName", "mainFont")
     private val COMPILE_COMMAND_KEY = "pandoc.compile.command"
     private val executor = Executors.newFixedThreadPool(4)
-    private val currentTasks = ConcurrentHashMap<String, Future<Boolean>>()
 
     override fun processMessage(message: PubsubMessage): Boolean {
         val request = CompileRequest.parseFrom(message.data)
