@@ -36,6 +36,7 @@ import java.io.FileOutputStream
 import java.io.IOException
 import java.nio.file.Path
 import java.nio.file.Paths
+import java.util.concurrent.*
 import java.util.zip.ZipEntry
 import java.util.zip.ZipInputStream
 
@@ -150,11 +151,30 @@ class MarkdownTaskReceiver(
     private val arguments = listOf("projectRootAbsPath", "workingDirRelPath",
             "inputFileName", "outputFileName", "mainFont")
     private val COMPILE_COMMAND_KEY = "pandoc.compile.command"
+    private val executor = Executors.newFixedThreadPool(4)
+    private val currentTasks = ConcurrentHashMap<String, Future<Boolean>>()
 
     override fun processMessage(message: PubsubMessage): Boolean {
         val request = CompileRequest.parseFrom(message.data)
         LOGGER.debug("Converting Markdown to tex: {}", request.mainFileName)
 
+        if (currentTasks.contains(request.id)) {
+            LOGGER.debug("Task with id {} is already executing", request.id)
+            return true
+        }
+
+        val future = executor.submit(Callable {
+            return@Callable processTask(request)
+        })
+
+        currentTasks[request.id] = future
+        val result = future.get()
+        currentTasks.remove(request.id)
+
+        return result
+    }
+
+    private fun processTask(request: CompileRequest): Boolean {
         fetchProjectFiles(request)
         val commandArguments = getCmdLineArguments(request)
         val exitCode = convertMarkdown(commandArguments)
