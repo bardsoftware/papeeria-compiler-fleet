@@ -101,7 +101,7 @@ class ResultReceiver(
         private val expectedTaskId: String
 ) : CompilerFleetMessageReceiver() {
     override fun processMessage(message: PubsubMessage): Boolean {
-        val result = CompilerFleet.CompilerFleetResult.parseFrom(message.data)
+        val result = CompilerFleet.CompilerFleetResult.parseFrom(message.data).compile
 
         if (result.taskId != expectedTaskId) {
             LOGGER.info("Task ids don't match: \nexpected:{}, \nactual:{}", expectedTaskId, result.taskId)

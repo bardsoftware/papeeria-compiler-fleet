@@ -31,14 +31,21 @@ enum Compiler {
 }
 
 message CompilerFleetRequest {
-    string taskId = 1;
-    bytes zipBytes = 2;
-    string rootFileName = 3;
-    Engine engine = 4;
-    Compiler compiler = 5;
+    string taskId = 3;
+    bytes zipBytes = 4;
+    string rootFileName = 5;
+    Engine engine = 6;
+    Compiler compiler = 7;
 }
 
 message CompilerFleetResult {
+    oneof result {
+        Compile compile = 1;
+        Cancel cancel = 2;
+    }
+}
+
+message Compile {
     string taskId = 1;
     string outputFileName = 2;
     Engine engine = 3;
@@ -48,4 +55,14 @@ message CompilerFleetResult {
     string editSessionId = 7;
     uint32 flags = 8;
     bytes texbeResponse = 9;
+}
+
+message Cancel {
+    int32 cpu_time = 1;
+    enum Status {
+        OK = 0;
+        NOT_FOUND = 1;
+        FAILED = 2;
+    }
+    Status status = 2;
 }

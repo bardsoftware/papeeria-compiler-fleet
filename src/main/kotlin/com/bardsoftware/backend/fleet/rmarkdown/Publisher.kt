@@ -32,12 +32,13 @@ fun buildResultData(taskId: String, compiledBytes: ByteString, outputFileName: S
             .setStatus(CompileResponse.Status.forNumber(statusCode))
             .build()
 
-    return CompilerFleet.CompilerFleetResult.newBuilder()
+    val compile = CompilerFleet.Compile.newBuilder()
             .setTaskId(taskId)
             .setTexbeResponse(texbeResponse.toByteString())
             .setOutputFileName(outputFileName)
             .build()
-            .toByteString()
+
+    return getResultData(compile)
 }
 
 fun buildResultData(request: CompileRequest, response: CompileResponse): ByteString {
@@ -47,7 +48,7 @@ fun buildResultData(request: CompileRequest, response: CompileResponse): ByteStr
         CompilerFleet.Engine.XELATEX
     }
 
-    return CompilerFleet.CompilerFleetResult.newBuilder()
+    val compile =  CompilerFleet.Compile.newBuilder()
             .setTaskId(request.id)
             .setTexbeResponse(response.toByteString())
             .setOutputFileName(request.outputBaseName)
@@ -57,6 +58,14 @@ fun buildResultData(request: CompileRequest, response: CompileResponse): ByteStr
             .setMainFileId(request.mainFileId)
             .setEditSessionId(request.editSessionId)
             .setFlags(request.flags)
+            .build()
+
+    return getResultData(compile)
+}
+
+private fun getResultData(compile: CompilerFleet.Compile): ByteString {
+    return CompilerFleet.CompilerFleetResult.newBuilder()
+            .setCompile(compile)
             .build()
             .toByteString()
 }
