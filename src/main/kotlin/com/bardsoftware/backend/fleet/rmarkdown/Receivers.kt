@@ -22,7 +22,6 @@ import com.google.cloud.pubsub.v1.MessageReceiver
 import com.google.common.io.Files
 import com.google.protobuf.ByteString
 import com.google.pubsub.v1.PubsubMessage
-import com.sun.org.apache.xpath.internal.operations.Bool
 import com.typesafe.config.Config
 import org.apache.commons.io.FileUtils
 import org.apache.commons.lang.StringUtils
@@ -32,10 +31,12 @@ import java.io.ByteArrayInputStream
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
-import java.net.Authenticator
 import java.nio.file.Path
 import java.nio.file.Paths
-import java.util.concurrent.*
+import java.util.concurrent.Callable
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.Executors
+import java.util.concurrent.Future
 import java.util.zip.ZipEntry
 import java.util.zip.ZipInputStream
 

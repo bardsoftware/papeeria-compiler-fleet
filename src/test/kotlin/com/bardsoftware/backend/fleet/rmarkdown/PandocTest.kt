@@ -15,8 +15,7 @@
  */
 package com.bardsoftware.backend.fleet.rmarkdown
 
-import com.bardsoftware.papeeria.backend.tex.CompileRequest
-import com.bardsoftware.papeeria.backend.tex.CompileResponse
+import com.bardsoftware.papeeria.backend.tex.*
 import com.google.common.io.Files
 import com.google.protobuf.ByteString
 import com.google.pubsub.v1.PubsubMessage
@@ -64,13 +63,14 @@ class PandocTest {
         }
 
         val markdownReceiver = MarkdownTaskReceiver(mockCompiler, tasksDir, publisher, mockConfig)
-        val request = CompileRequest
+        val compileRequest = CompileRequest
                 .newBuilder()
                 .setMainFileName(source)
                 .setOutputBaseName(outputName)
                 .setId(taskId)
                 .build()
-                .toByteString()
+
+        val request = Request.newBuilder().setCompile(compileRequest).build().toByteString()
         val message = PubsubMessage.newBuilder().setData(request).build()
         markdownReceiver.processMessage(message)
 
