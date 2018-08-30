@@ -171,7 +171,7 @@ class MarkdownTaskReceiver(
     private fun processCancel(request: CancelRequestProto): Boolean {
         LOGGER.debug("Canceling the task with id = {}", request.taskId)
         val status = if (!currentTasks.contains(request.taskId)) {
-            CancelResponseProto.Status.NOT_FOUND
+            CompilerFleet.Cancel.Status.NOT_FOUND
         } else {
             val result = currentTasks[request.taskId]?.cancel(true)!!
             currentTasks.remove(request.taskId)
@@ -184,14 +184,18 @@ class MarkdownTaskReceiver(
             // 2) we stop by sending a cancel request to the texbe
 
             if (result) {
-                CancelResponseProto.Status.OK
+                CompilerFleet.Cancel.Status.OK
             } else {
-                CancelResponseProto.Status.FAILED
+                CompilerFleet.Cancel.Status.FAILED
             }
         }
 
         // TODO: add cpu time
-        val data = CancelResponseProto.newBuilder().setStatus(status).build().toByteString()
+        val data = CompilerFleet.Cancel.newBuilder()
+                .setTaskId(request.taskId)
+                .setStatus(status)
+                .build()
+                .toByteString()
         val onPublishFailureCallback = {
             LOGGER.info("Publish cancel task ${request.taskId} response failed with code ${StatusCode.FAILURE}")
         }

@@ -58,11 +58,12 @@ message Compile {
 }
 
 message Cancel {
-    int32 cpu_time = 1;
+    string taskId = 1;
+    int32 cpu_time = 2;
     enum Status {
         OK = 0;
         NOT_FOUND = 1;
         FAILED = 2;
     }
-    Status status = 2;
+    Status status = 3;
 }
