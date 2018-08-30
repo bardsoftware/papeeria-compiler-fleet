@@ -22,6 +22,7 @@ import com.google.cloud.pubsub.v1.MessageReceiver
 import com.google.common.io.Files
 import com.google.protobuf.ByteString
 import com.google.pubsub.v1.PubsubMessage
+import com.sun.org.apache.xpath.internal.operations.Bool
 import com.typesafe.config.Config
 import org.apache.commons.io.FileUtils
 import org.apache.commons.lang.StringUtils
@@ -31,6 +32,7 @@ import java.io.ByteArrayInputStream
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
+import java.net.Authenticator
 import java.nio.file.Path
 import java.nio.file.Paths
 import java.util.concurrent.*
@@ -139,20 +141,46 @@ open class TaskReceiver(tasksDirectory: String,
     }
 }
 
-private val currentTasks = ConcurrentHashMap<String, Future<Boolean>>()
-
-class CancelTaskReceiver(
+class MarkdownTaskReceiver(
+        private val texCompiler: CompilerApi,
         tasksDirectory: String,
-        resultPublisher: PublisherApi) : TaskReceiver(tasksDirectory, resultPublisher) {
+        resultPublisher: PublisherApi,
+        private val config: Config = DEFAULT_CONFIG) : TaskReceiver(tasksDirectory, resultPublisher) {
+
+    private val arguments = listOf("projectRootAbsPath", "workingDirRelPath",
+            "inputFileName", "outputFileName", "mainFont")
+    private val COMPILE_COMMAND_KEY = "pandoc.compile.command"
+    private val executor = Executors.newFixedThreadPool(4)
+    private val currentTasks = ConcurrentHashMap<String, Future<Boolean>>()
 
     override fun processMessage(message: PubsubMessage): Boolean {
-        val request = CancelRequestProto.parseFrom(message.data)
+        val request = Request.parseFrom(message.data)
 
+        when (request.typeCase) {
+            Request.TypeCase.COMPILE -> return processCompile(request.compile)
+            Request.TypeCase.CANCEL  -> return processCancel(request.cancel)
+            else -> {
+                LOGGER.error("Request type is not set")
+            }
+        }
+
+        return false
+    }
+
+    private fun processCancel(request: CancelRequestProto): Boolean {
         val status = if (!currentTasks.contains(request.taskId)) {
             LOGGER.debug("No task with id={} to cancel", request.taskId)
             CancelResponseProto.Status.NOT_FOUND
         } else {
             val result = currentTasks[request.taskId]?.cancel(true)!!
+            currentTasks.remove(request.taskId)
+            // canceling the thread will solve the problem?
+            // idea: two tasks maps of each processing stage
+            // 1)  tasks are converting to latex at the moment
+            // 2) tasks are pushed to the texbe
+            //
+            // 1) we stop by stopping the cmd process
+            // 2) we stop by sending a cancel request to the texbe
 
             if (result) {
                 CancelResponseProto.Status.OK
@@ -171,21 +199,7 @@ class CancelTaskReceiver(
         return true
     }
 
-}
-
-class MarkdownTaskReceiver(
-        private val texCompiler: CompilerApi,
-        tasksDirectory: String,
-        resultPublisher: PublisherApi,
-        private val config: Config = DEFAULT_CONFIG) : TaskReceiver(tasksDirectory, resultPublisher) {
-
-    private val arguments = listOf("projectRootAbsPath", "workingDirRelPath",
-            "inputFileName", "outputFileName", "mainFont")
-    private val COMPILE_COMMAND_KEY = "pandoc.compile.command"
-    private val executor = Executors.newFixedThreadPool(4)
-
-    override fun processMessage(message: PubsubMessage): Boolean {
-        val request = CompileRequest.parseFrom(message.data)
+    private fun processCompile(request: CompileRequest): Boolean {
         LOGGER.debug("Converting Markdown to tex: {}", request.mainFileName)
 
         if (currentTasks.contains(request.id)) {
@@ -193,7 +207,7 @@ class MarkdownTaskReceiver(
             return true
         }
 
-        val future = executor.submit(Callable {
+        val future: Future<Boolean> = executor.submit(Callable {
             return@Callable processTask(request)
         })
 
