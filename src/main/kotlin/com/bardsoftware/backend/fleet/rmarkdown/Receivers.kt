@@ -168,8 +168,8 @@ class MarkdownTaskReceiver(
     }
 
     private fun processCancel(request: CancelRequestProto): Boolean {
+        LOGGER.debug("Canceling the task with id = {}", request.taskId)
         val status = if (!currentTasks.contains(request.taskId)) {
-            LOGGER.debug("No task with id={} to cancel", request.taskId)
             CancelResponseProto.Status.NOT_FOUND
         } else {
             val result = currentTasks[request.taskId]?.cancel(true)!!
