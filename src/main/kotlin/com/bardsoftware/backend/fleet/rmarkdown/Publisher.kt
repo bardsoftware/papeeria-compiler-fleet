@@ -32,10 +32,15 @@ fun buildResultData(taskId: String, compiledBytes: ByteString, outputFileName: S
             .setStatus(CompileResponse.Status.forNumber(statusCode))
             .build()
 
-    val compile = CompilerFleet.Compile.newBuilder()
+    val requestData = CompilerFleet.CompilerFleetMockResult.newBuilder()
             .setTaskId(taskId)
-            .setTexbeResponse(texbeResponse.toByteString())
             .setOutputFileName(outputFileName)
+            .build()
+            .toByteString()
+
+    val compile = CompilerFleet.Compile.newBuilder()
+            .setTexbeResponse(texbeResponse.toByteString())
+            .setRequestData(requestData)
             .build()
 
     return getResultData(compile)
@@ -49,15 +54,8 @@ fun buildResultData(request: CompileRequest, response: CompileResponse): ByteStr
     }
 
     val compile =  CompilerFleet.Compile.newBuilder()
-            .setTaskId(request.id)
+            .setRequestData(request.toByteString())
             .setTexbeResponse(response.toByteString())
-            .setOutputFileName(request.outputBaseName)
-            .setEngine(engine)
-            .setUserId(request.userId)
-            .setProjectId(request.projectId)
-            .setMainFileId(request.mainFileId)
-            .setEditSessionId(request.editSessionId)
-            .setFlags(request.flags)
             .build()
 
     return getResultData(compile)

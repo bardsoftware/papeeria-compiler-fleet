@@ -101,14 +101,14 @@ class ResultReceiver(
         private val expectedTaskId: String
 ) : CompilerFleetMessageReceiver() {
     override fun processMessage(message: PubsubMessage): Boolean {
-        val result = CompilerFleet.CompilerFleetResult.parseFrom(message.data).compile
+        val result = CompilerFleet.CompilerFleetResult.parseFrom(message.data).mock
 
         if (result.taskId != expectedTaskId) {
             LOGGER.info("Task ids don't match: \nexpected:{}, \nactual:{}", expectedTaskId, result.taskId)
             return false
         }
 
-        val pdfFile = CompileResponse.parseFrom(result.texbeResponse).pdfFile
+        val pdfFile = CompileResponse.parseFrom(result.resultBytes).pdfFile
         FileUtils.writeByteArrayToFile(outputFile, pdfFile.toByteArray())
 
         LOGGER.info("Result received and written into {}", outputFile.name)

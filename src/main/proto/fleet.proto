@@ -42,19 +42,19 @@ message CompilerFleetResult {
     oneof result {
         Compile compile = 1;
         Cancel cancel = 2;
+        CompilerFleetMockResult mock = 3;
     }
 }
 
-message Compile {
+message CompilerFleetMockResult {
     string taskId = 1;
-    string outputFileName = 2;
-    Engine engine = 3;
-    string userId = 4;
-    string projectId = 5;
-    string mainFileId = 6;
-    string editSessionId = 7;
-    uint32 flags = 8;
-    bytes texbeResponse = 9;
+    bytes resultBytes = 2;
+    string outputFileName = 3;
+}
+
+message Compile {
+    bytes requestData = 1;
+    bytes texbeResponse = 2;
 }
 
 message Cancel {

@@ -175,7 +175,7 @@ class MarkdownTaskReceiver(
         } else {
             val result = currentTasks[request.taskId]?.cancel(true)!!
             currentTasks.remove(request.taskId)
-            // canceling the thread will solve the problem?
+            // will canceling the thread solve the problem?
             // idea: two tasks maps of each processing stage
             // 1) tasks are converting to latex at the moment
             // 2) tasks are pushed to the texbe
