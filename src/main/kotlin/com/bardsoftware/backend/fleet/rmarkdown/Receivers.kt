@@ -165,7 +165,7 @@ class MarkdownTaskReceiver(
             }
         }
 
-        return false
+        return true
     }
 
     private fun processCancel(request: CancelRequestProto): Boolean {
@@ -177,7 +177,7 @@ class MarkdownTaskReceiver(
             currentTasks.remove(request.taskId)
             // canceling the thread will solve the problem?
             // idea: two tasks maps of each processing stage
-            // 1)  tasks are converting to latex at the moment
+            // 1) tasks are converting to latex at the moment
             // 2) tasks are pushed to the texbe
             //
             // 1) we stop by stopping the cmd process
