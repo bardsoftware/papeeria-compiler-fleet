@@ -39,6 +39,7 @@ import java.util.concurrent.Executors
 import java.util.concurrent.Future
 import java.util.zip.ZipEntry
 import java.util.zip.ZipInputStream
+import kotlin.system.measureTimeMillis
 
 private val LOGGER = LoggerFactory.getLogger("TaskReceiver")
 
@@ -151,6 +152,7 @@ class MarkdownTaskReceiver(
     private val arguments = listOf("projectRootAbsPath", "workingDirRelPath",
             "inputFileName", "outputFileName", "mainFont")
     private val COMPILE_COMMAND_KEY = "pandoc.compile.command"
+    // TODO: fixedThreadPool? if so, how many threads?
     private val executor = Executors.newFixedThreadPool(4)
     private val currentTasks = ConcurrentHashMap<String, Future<Boolean>>()
 
@@ -170,13 +172,33 @@ class MarkdownTaskReceiver(
 
     private fun processCancel(request: CancelRequestProto): Boolean {
         LOGGER.debug("Canceling the task with id = {}", request.taskId)
-        val status = if (!currentTasks.contains(request.taskId)) {
+        var status = CompilerFleet.Cancel.Status.FAILED // init value
+        val elapsedTime = measureTimeMillis {
+            status = cancelTask(request)
+        }
+
+        val data = CompilerFleet.Cancel.newBuilder()
+                .setTaskId(request.taskId)
+                .setStatus(status)
+                .setCpuTime(elapsedTime.toInt())
+                .build()
+                .toByteString()
+        val onPublishFailureCallback = {
+            LOGGER.info("Publish cancel task ${request.taskId} response failed with code ${StatusCode.FAILURE}")
+        }
+
+        resultPublisher.publish(data, onPublishFailureCallback)
+        return true
+    }
+
+    private fun cancelTask(request: CancelRequestProto): CompilerFleet.Cancel.Status {
+        return if (!currentTasks.contains(request.taskId)) {
             CompilerFleet.Cancel.Status.NOT_FOUND
         } else {
             val result = currentTasks[request.taskId]?.cancel(true)!!
             currentTasks.remove(request.taskId)
             // will canceling the thread solve the problem?
-            // idea: two tasks maps of each processing stage
+            // another idea: two tasks maps of each processing stage
             // 1) tasks are converting to latex at the moment
             // 2) tasks are pushed to the texbe
             //
@@ -189,19 +211,6 @@ class MarkdownTaskReceiver(
                 CompilerFleet.Cancel.Status.FAILED
             }
         }
-
-        // TODO: add cpu time
-        val data = CompilerFleet.Cancel.newBuilder()
-                .setTaskId(request.taskId)
-                .setStatus(status)
-                .build()
-                .toByteString()
-        val onPublishFailureCallback = {
-            LOGGER.info("Publish cancel task ${request.taskId} response failed with code ${StatusCode.FAILURE}")
-        }
-
-        resultPublisher.publish(data, onPublishFailureCallback)
-        return true
     }
 
     private fun processCompile(request: CompileRequest): Boolean {
