@@ -55,26 +55,27 @@ abstract class CompilerFleetMessageReceiver : MessageReceiver {
     abstract fun processMessage(message: PubsubMessage): Boolean
 }
 
+@Throws(IOException::class)
+private fun getTaskDir(tasksDirectory: String): Path {
+    val directoryPath = Paths.get(tasksDirectory)
+    val directoryFile = directoryPath.toFile()
+    val directoryName = directoryFile.name
+
+    directoryExistingCheck(directoryFile)
+    if (!directoryFile.canWrite()) {
+        throw IOException("tasksDir directory(name is $directoryName) isn't writable")
+    }
+
+    return directoryPath
+}
+
 open class TaskReceiver(tasksDirectory: String,
                         val resultPublisher: PublisherApi
 ) : CompilerFleetMessageReceiver() {
-    protected val tasksDir: Path
+    private val tasksDir: Path = getTaskDir(tasksDirectory)
     private val dockerProcessor = DockerProcessor(getDefaultDockerClient())
     private val MOCK_FILE_NAME = "example.pdf"
     private val MOCK_PDF_BYTES = TaskReceiver::class.java.classLoader.getResourceAsStream(MOCK_FILE_NAME).readBytes()
-
-    init {
-        val directoryPath = Paths.get(tasksDirectory)
-        val directoryFile = directoryPath.toFile()
-        val directoryName = directoryFile.name
-
-        directoryExistingCheck(directoryFile)
-        if (!directoryFile.canWrite()) {
-            throw IOException("tasksDir directory(name is $directoryName) isn't writable")
-        }
-
-        this.tasksDir = directoryPath
-    }
 
     fun unzipCompileTask(taskId: String, rootFileName: String, zipBytes: ByteString): File {
         val destination = this.tasksDir.resolve(taskId).resolve("files")
@@ -135,7 +136,7 @@ open class TaskReceiver(tasksDirectory: String,
             isPublished = false
         }
 
-        val data = buildResultData(taskId, compiledBytes, outputFileName, StatusCode.SUCCESS.ordinal)
+        val data = buildResultData(taskId, compiledBytes, StatusCode.SUCCESS.ordinal)
         resultPublisher.publish(data, onPublishFailureCallback)
 
         return isPublished
@@ -145,14 +146,14 @@ open class TaskReceiver(tasksDirectory: String,
 class MarkdownTaskReceiver(
         private val texCompiler: CompilerApi,
         tasksDirectory: String,
-        resultPublisher: PublisherApi,
-        private val config: Config = DEFAULT_CONFIG) : TaskReceiver(tasksDirectory, resultPublisher) {
+        private val resultPublisher: PublisherApi,
+        private val config: Config = DEFAULT_CONFIG) : CompilerFleetMessageReceiver() {
 
+    private val tasksDir: Path = getTaskDir(tasksDirectory)
     private val arguments = listOf("projectRootAbsPath", "workingDirRelPath",
             "inputFileName", "outputFileName", "mainFont")
     private val COMPILE_COMMAND_KEY = "pandoc.compile.command"
-    // TODO: fixedThreadPool? if so, how many threads?
-    private val executor = Executors.newFixedThreadPool(4)
+    private val executor = Executors.newSingleThreadExecutor()
     private val currentTasks = ConcurrentHashMap<String, Future<Boolean>>()
 
     override fun processMessage(message: PubsubMessage): Boolean {
@@ -162,7 +163,7 @@ class MarkdownTaskReceiver(
             Request.TypeCase.COMPILE -> return processCompile(request.compile)
             Request.TypeCase.CANCEL  -> return processCancel(request.cancel)
             else -> {
-                LOGGER.error("Request type is not set")
+                LOGGER.error("Request type = {} is not set properly", request.typeCase)
             }
         }
 
@@ -171,15 +172,11 @@ class MarkdownTaskReceiver(
 
     private fun processCancel(request: CancelRequestProto): Boolean {
         LOGGER.debug("Canceling the task with id = {}", request.taskId)
-        var status = CompilerFleet.Cancel.Status.FAILED // init value
-        val elapsedTime = measureTimeMillis {
-            status = cancelTask(request)
-        }
-
+        val status = cancelTask(request)
         val data = CompilerFleet.Cancel.newBuilder()
                 .setTaskId(request.taskId)
                 .setStatus(status)
-                .setCpuTime(elapsedTime.toInt())
+                .setCpuTime(0) // TODO: put value when cancel task is fixed
                 .build()
                 .toByteString()
         val onPublishFailureCallback = {
@@ -194,7 +191,7 @@ class MarkdownTaskReceiver(
         return if (!currentTasks.contains(request.taskId)) {
             CompilerFleet.Cancel.Status.NOT_FOUND
         } else {
-            val result = currentTasks[request.taskId]?.cancel(true)!!
+            val result = currentTasks[request.taskId]?.cancel(true)
             currentTasks.remove(request.taskId)
             // will canceling the thread solve the problem?
             // another idea: two tasks maps of each processing stage
@@ -204,7 +201,7 @@ class MarkdownTaskReceiver(
             // 1) we stop by stopping the cmd process
             // 2) we stop by sending a cancel request to the texbe
 
-            if (result) {
+            if (result != null && result) {
                 CompilerFleet.Cancel.Status.OK
             } else {
                 CompilerFleet.Cancel.Status.FAILED
