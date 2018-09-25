@@ -27,14 +27,19 @@ import com.google.pubsub.v1.TopicName
 import org.slf4j.LoggerFactory
 
 fun buildResultData(taskId: String, compiledBytes: ByteString, outputFileName: String, statusCode: Int): ByteString {
+    val status = if (statusCode == 0) {
+        CompileResponse.Status.OK
+    } else {
+        CompileResponse.Status.FAILED
+    }
+
     val texbeResponse = CompileResponse.newBuilder()
             .setPdfFile(compiledBytes)
-            .setStatus(CompileResponse.Status.forNumber(statusCode))
+            .setStatus(status)
             .build()
 
     val requestData = CompilerFleet.CompilerFleetMockResult.newBuilder()
             .setTaskId(taskId)
-            .setOutputFileName(outputFileName)
             .build()
             .toByteString()
 
@@ -47,12 +52,6 @@ fun buildResultData(taskId: String, compiledBytes: ByteString, outputFileName: S
 }
 
 fun buildResultData(request: CompileRequest, response: CompileResponse): ByteString {
-    val engine = try {
-        CompilerFleet.Engine.valueOf(request.engine.name)
-    } catch (exception: IllegalArgumentException) {
-        CompilerFleet.Engine.XELATEX
-    }
-
     val compile =  CompilerFleet.Compile.newBuilder()
             .setRequestData(request.toByteString())
             .setTexbeResponse(response.toByteString())

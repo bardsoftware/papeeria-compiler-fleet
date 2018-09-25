@@ -60,8 +60,8 @@ open class TaskReceiver(tasksDirectory: String,
 ) : CompilerFleetMessageReceiver() {
     protected val tasksDir: Path
     private val dockerProcessor = DockerProcessor(getDefaultDockerClient())
-    protected val MOCK_FILE_NAME = "example.pdf"
-    protected val MOCK_PDF_BYTES = TaskReceiver::class.java.classLoader.getResourceAsStream(MOCK_FILE_NAME).readBytes()
+    private val MOCK_FILE_NAME = "example.pdf"
+    private val MOCK_PDF_BYTES = TaskReceiver::class.java.classLoader.getResourceAsStream(MOCK_FILE_NAME).readBytes()
 
     init {
         val directoryPath = Paths.get(tasksDirectory)
@@ -108,7 +108,6 @@ open class TaskReceiver(tasksDirectory: String,
     private fun compileProject(request: CompilerFleet.CompilerFleetRequest): File {
         val rootFileFullPath = request.rootFileName
         val zippedProject = request.zipBytes
-        val engine = request.engine
 
         val rootFile = unzipCompileTask(request.taskId, rootFileFullPath, zippedProject)
         return dockerProcessor.compileRmdToPdf(rootFile)

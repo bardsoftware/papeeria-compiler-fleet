@@ -75,7 +75,7 @@ interface CompilerApi {
 }
 
 class CompilerImpl(address: String) : CompilerApi {
-    val texbeCompilerStub: TexbeGrpc.TexbeBlockingStub
+    private val texbeCompilerStub: TexbeGrpc.TexbeBlockingStub
 
     init {
         val channel = ManagedChannelBuilder
