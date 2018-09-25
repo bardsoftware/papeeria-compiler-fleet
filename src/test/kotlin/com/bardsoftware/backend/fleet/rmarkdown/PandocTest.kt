@@ -76,7 +76,6 @@ class PandocTest {
 
         while (!markdownReceiver.isTaskDone(taskId)) {}
 
-        println(markdownReceiver.isTaskDone(taskId))
         verify(mockConfig, times(1)).getString(CONFIG_KEY)
         verify(publisher).publish(argThat {
             val result = CompilerFleet.CompilerFleetResult.parseFrom(this)
