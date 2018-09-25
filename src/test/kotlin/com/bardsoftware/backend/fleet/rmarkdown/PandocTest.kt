@@ -74,8 +74,10 @@ class PandocTest {
         val message = PubsubMessage.newBuilder().setData(request).build()
         markdownReceiver.processMessage(message)
 
-        verify(mockConfig, times(1)).getString(CONFIG_KEY)
+        while (!markdownReceiver.isTaskDone(taskId)) {}
 
+        println(markdownReceiver.isTaskDone(taskId))
+        verify(mockConfig, times(1)).getString(CONFIG_KEY)
         verify(publisher).publish(argThat {
             val result = CompilerFleet.CompilerFleetResult.parseFrom(this)
             CompileResponse.parseFrom(result.toByteString()).status == CompileResponse.Status.OK

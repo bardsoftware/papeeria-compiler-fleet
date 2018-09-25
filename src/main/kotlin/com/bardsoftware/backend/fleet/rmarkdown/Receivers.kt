@@ -205,6 +205,10 @@ class MarkdownTaskReceiver(
         }
     }
 
+    fun isTaskDone(taskId: String): Boolean {
+        return !this.currentTasks.containsKey(taskId)
+    }
+
     private fun processCompile(request: CompileRequest): Boolean {
         LOGGER.debug("Converting Markdown to tex: {}", request.mainFileName)
 
@@ -214,7 +218,6 @@ class MarkdownTaskReceiver(
         }
 
         val future: Future<Boolean> = executor.submit(Callable {
-            currentTasks.remove(request.id)
             return@Callable processTask(request)
         })
 
@@ -246,6 +249,7 @@ class MarkdownTaskReceiver(
 
         val data = buildResultData(request, response)
         resultPublisher.publish(data, onPublishFailureCallback)
+        currentTasks.remove(request.id)
         return true
     }
 
