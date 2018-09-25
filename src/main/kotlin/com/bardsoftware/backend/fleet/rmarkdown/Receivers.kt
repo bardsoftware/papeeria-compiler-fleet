@@ -39,7 +39,6 @@ import java.util.concurrent.Executors
 import java.util.concurrent.Future
 import java.util.zip.ZipEntry
 import java.util.zip.ZipInputStream
-import kotlin.system.measureTimeMillis
 
 private val LOGGER = LoggerFactory.getLogger("TaskReceiver")
 
@@ -120,15 +119,12 @@ open class TaskReceiver(tasksDirectory: String,
         var isPublished = true
 
         val compiledBytes: ByteString
-        val outputFileName: String
 
-        if (request.compiler == CompilerFleet.Compiler.MOCK) {
-            compiledBytes = ByteString.copyFrom(MOCK_PDF_BYTES)
-            outputFileName = MOCK_FILE_NAME
+        compiledBytes = if (request.compiler == CompilerFleet.Compiler.MOCK) {
+            ByteString.copyFrom(MOCK_PDF_BYTES)
         } else {
             val compiledFile = compileProject(request)
-            outputFileName = compiledFile.name
-            compiledBytes = ByteString.copyFrom(FileUtils.readFileToByteArray(compiledFile))
+            ByteString.copyFrom(FileUtils.readFileToByteArray(compiledFile))
         }
 
         val onPublishFailureCallback = {
@@ -218,14 +214,12 @@ class MarkdownTaskReceiver(
         }
 
         val future: Future<Boolean> = executor.submit(Callable {
+            currentTasks.remove(request.id)
             return@Callable processTask(request)
         })
 
         currentTasks[request.id] = future
-        val result = future.get()
-        currentTasks.remove(request.id)
-
-        return result
+        return true
     }
 
     private fun processTask(request: CompileRequest): Boolean {

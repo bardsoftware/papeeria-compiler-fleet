@@ -26,7 +26,7 @@ import com.google.pubsub.v1.PubsubMessage
 import com.google.pubsub.v1.TopicName
 import org.slf4j.LoggerFactory
 
-fun buildResultData(taskId: String, compiledBytes: ByteString, outputFileName: String, statusCode: Int): ByteString {
+fun buildResultData(taskId: String, compiledBytes: ByteString, statusCode: Int): ByteString {
     val status = if (statusCode == 0) {
         CompileResponse.Status.OK
     } else {
