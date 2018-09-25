@@ -31,11 +31,11 @@ enum Compiler {
 }
 
 message CompilerFleetRequest {
-    string taskId = 3;
-    bytes zipBytes = 4;
-    string rootFileName = 5;
-    Engine engine = 6;
-    Compiler compiler = 7;
+    string taskId = 1;
+    bytes zipBytes = 2;
+    string rootFileName = 3;
+    Engine engine = 4;
+    Compiler compiler = 5;
 }
 
 message CompilerFleetResult {
