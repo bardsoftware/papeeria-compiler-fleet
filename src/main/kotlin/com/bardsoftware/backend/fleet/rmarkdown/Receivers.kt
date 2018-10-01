@@ -273,6 +273,9 @@ class MarkdownTaskReceiver(
     // converts Markdown into tex via pandoc
     private fun convertMarkdown(commandArguments: Map<String, String>): Int {
         val substitutor = StringSubstitutor(commandArguments)
+
+        // the '\' exists because of the double slash in the config,
+        // where in turn $ should be protected, so we remove the value here
         val rawCommandLine = config.getString(COMPILE_COMMAND_KEY).replace("\\", "")
         val commandLine = substitutor.replace(rawCommandLine)
         return runCommandLine(commandLine)
