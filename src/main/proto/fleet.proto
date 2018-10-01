@@ -18,6 +18,8 @@ syntax = "proto3";
 option java_package = "com.bardsoftware.backend.fleet.rmarkdown";
 option java_outer_classname = "CompilerFleet";
 
+import "texbe.proto";
+
 enum Engine {
     PDFLATEX = 0;
     XELATEX = 1;
@@ -53,8 +55,8 @@ message CompilerFleetMockResult {
 }
 
 message Compile {
-    bytes requestData = 1;
-    bytes texbeResponse = 2;
+    texbe_proto.CompileRequest requestData = 1;
+    texbe_proto.CompileResponse texbeResponse = 2;
 }
 
 message Cancel {

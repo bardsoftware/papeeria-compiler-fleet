@@ -40,10 +40,9 @@ fun buildResultData(taskId: String, compiledBytes: ByteString, statusCode: Int):
     val requestData = CompilerFleet.CompilerFleetMockResult.newBuilder()
             .setTaskId(taskId)
             .build()
-            .toByteString()
 
     val compile = CompilerFleet.Compile.newBuilder()
-            .setTexbeResponse(texbeResponse.toByteString())
+            .setTexbeResponse(texbeResponse)
             .setRequestData(requestData)
             .build()
 
@@ -52,8 +51,8 @@ fun buildResultData(taskId: String, compiledBytes: ByteString, statusCode: Int):
 
 fun buildResultData(request: CompileRequest, response: CompileResponse): ByteString {
     val compile =  CompilerFleet.Compile.newBuilder()
-            .setRequestData(request.toByteString())
-            .setTexbeResponse(response.toByteString())
+            .setRequestData(request)
+            .setTexbeResponse(response)
             .build()
 
     return getResultData(compile)
