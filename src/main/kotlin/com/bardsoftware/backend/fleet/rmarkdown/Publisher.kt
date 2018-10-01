@@ -17,6 +17,8 @@ package com.bardsoftware.backend.fleet.rmarkdown
 
 import com.bardsoftware.papeeria.backend.tex.CompileRequest
 import com.bardsoftware.papeeria.backend.tex.CompileResponse
+import com.bardsoftware.papeeria.backend.tex.Request
+import com.bardsoftware.papeeria.backend.tex.TexbeProto
 import com.google.api.core.ApiFutureCallback
 import com.google.api.core.ApiFutures
 import com.google.cloud.ServiceOptions
@@ -25,6 +27,9 @@ import com.google.protobuf.ByteString
 import com.google.pubsub.v1.PubsubMessage
 import com.google.pubsub.v1.TopicName
 import org.slf4j.LoggerFactory
+import javassist.CtMethod.ConstParameter.string
+
+
 
 fun buildResultData(taskId: String, compiledBytes: ByteString, statusCode: Int): ByteString {
     val status = when (statusCode) {
@@ -37,7 +42,7 @@ fun buildResultData(taskId: String, compiledBytes: ByteString, statusCode: Int):
             .setStatus(status)
             .build()
 
-    val requestData = CompilerFleet.CompilerFleetMockResult.newBuilder()
+    val requestData = CompilerFleet.RequestIdentifier.newBuilder()
             .setTaskId(taskId)
             .build()
 
@@ -50,8 +55,17 @@ fun buildResultData(taskId: String, compiledBytes: ByteString, statusCode: Int):
 }
 
 fun buildResultData(request: CompileRequest, response: CompileResponse): ByteString {
+    val identifier = CompilerFleet.RequestIdentifier.newBuilder()
+            .setTaskId(request.id)
+            .setUserId(request.userId)
+            .setProjectId(request.projectId)
+            .setProjectName(request.outputBaseName)
+            .setMainFileId(request.mainFileId)
+            .setEditSessionId(request.editSessionId)
+            .build()
+
     val compile =  CompilerFleet.Compile.newBuilder()
-            .setRequestData(request)
+            .setRequestData(identifier)
             .setTexbeResponse(response)
             .build()
 

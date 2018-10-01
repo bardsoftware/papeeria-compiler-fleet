@@ -44,18 +44,21 @@ message CompilerFleetResult {
     oneof result {
         Compile compile = 1;
         Cancel cancel = 2;
-        CompilerFleetMockResult mock = 3;
+        RequestIdentifier identifier = 3;
     }
 }
 
-message CompilerFleetMockResult {
+message RequestIdentifier {
     string taskId = 1;
-    bytes resultBytes = 2;
-    string outputFileName = 3;
+    string userId = 2;
+    string projectId = 3;
+    string projectName = 4;
+    string mainFileId = 5;
+    string editSessionId = 6;
 }
 
 message Compile {
-    texbe_proto.CompileRequest requestData = 1;
+    RequestIdentifier requestData = 1;
     texbe_proto.CompileResponse texbeResponse = 2;
 }
 
