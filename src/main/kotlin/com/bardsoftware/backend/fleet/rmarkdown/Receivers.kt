@@ -220,7 +220,7 @@ class MarkdownTaskReceiver(
         }
 
         val future: Future<Boolean> = executor.submit(Callable {
-            return@Callable processTask(request)
+            processTask(request)
         })
 
         currentTasks[request.id] = future
