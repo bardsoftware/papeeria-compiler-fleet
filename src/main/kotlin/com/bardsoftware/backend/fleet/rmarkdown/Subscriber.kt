@@ -25,6 +25,7 @@ import com.xenomachina.argparser.ArgParser
 import com.xenomachina.argparser.mainBody
 import io.grpc.ManagedChannelBuilder
 import java.util.concurrent.CompletableFuture
+import java.util.concurrent.Executors
 
 
 class SubscriberArgs(parser: ArgParser) {
@@ -99,6 +100,6 @@ fun main(args: Array<String>) = mainBody {
 
     val publisher = Publisher(resultTopic)
     val compiler = CompilerImpl(parsedArgs.texbeAddress)
-    val taskReceiver = MarkdownTaskReceiver(compiler, tasksDir, publisher)
+    val taskReceiver = MarkdownTaskReceiver(compiler, tasksDir, publisher, Executors.newSingleThreadExecutor())
     subscribe(subscriptionId, taskReceiver)
 }

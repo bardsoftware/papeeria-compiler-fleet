@@ -33,10 +33,7 @@ import java.io.FileOutputStream
 import java.io.IOException
 import java.nio.file.Path
 import java.nio.file.Paths
-import java.util.concurrent.Callable
-import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.Executors
-import java.util.concurrent.Future
+import java.util.concurrent.*
 import java.util.zip.ZipEntry
 import java.util.zip.ZipInputStream
 
@@ -118,9 +115,7 @@ open class TaskReceiver(tasksDirectory: String,
         val taskId = request.taskId
         var isPublished = true
 
-        val compiledBytes: ByteString
-
-        compiledBytes = if (request.compiler == CompilerFleet.Compiler.MOCK) {
+        val compiledBytes = if (request.compiler == CompilerFleet.Compiler.MOCK) {
             ByteString.copyFrom(MOCK_PDF_BYTES)
         } else {
             val compiledFile = compileProject(request)
@@ -143,21 +138,28 @@ class MarkdownTaskReceiver(
         private val texCompiler: CompilerApi,
         tasksDirectory: String,
         private val resultPublisher: PublisherApi,
+        private val executor: ExecutorService,
         private val config: Config = DEFAULT_CONFIG) : CompilerFleetMessageReceiver() {
 
     private val tasksDir: Path = getTaskDir(tasksDirectory)
     private val arguments = listOf("projectRootAbsPath", "workingDirRelPath",
             "inputFileName", "outputFileName", "mainFont")
     private val COMPILE_COMMAND_KEY = "pandoc.compile.command"
-    private val executor = Executors.newSingleThreadExecutor()
     private val currentTasks = ConcurrentHashMap<String, Future<Boolean>>()
 
     override fun processMessage(message: PubsubMessage): Boolean {
         val request = Request.parseFrom(message.data)
 
         when (request.typeCase) {
-            Request.TypeCase.COMPILE -> return processCompile(request.compile)
-            Request.TypeCase.CANCEL  -> return processCancel(request.cancel)
+            Request.TypeCase.COMPILE -> {
+                processCompile(request.compile)
+                return true
+            }
+
+            Request.TypeCase.CANCEL  -> {
+                return processCancel(request.cancel)
+            }
+
             else -> {
                 LOGGER.error("Request type = {} is not set properly", request.typeCase)
             }
@@ -197,7 +199,7 @@ class MarkdownTaskReceiver(
             // 1) we stop by stopping the cmd process
             // 2) we stop by sending a cancel request to the texbe
 
-            if (result != null && result) {
+            if (true == result) {
                 CompilerFleet.Cancel.Status.OK
             } else {
                 CompilerFleet.Cancel.Status.FAILED
@@ -209,12 +211,12 @@ class MarkdownTaskReceiver(
         return !this.currentTasks.containsKey(taskId)
     }
 
-    private fun processCompile(request: CompileRequest): Boolean {
+    private fun processCompile(request: CompileRequest) {
         LOGGER.debug("Converting Markdown to tex: {}", request.mainFileName)
 
         if (currentTasks.contains(request.id)) {
             LOGGER.debug("Task with id {} is already executing", request.id)
-            return true
+            return
         }
 
         val future: Future<Boolean> = executor.submit(Callable {
@@ -222,7 +224,6 @@ class MarkdownTaskReceiver(
         })
 
         currentTasks[request.id] = future
-        return true
     }
 
     private fun processTask(request: CompileRequest): Boolean {

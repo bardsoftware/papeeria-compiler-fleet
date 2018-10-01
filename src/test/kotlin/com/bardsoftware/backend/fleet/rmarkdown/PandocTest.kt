@@ -26,6 +26,7 @@ import org.junit.Before
 import org.junit.Test
 import java.io.File
 import java.nio.file.Paths
+import java.util.concurrent.Executors
 import kotlin.test.assertTrue
 
 class PandocTest {
@@ -62,7 +63,8 @@ class PandocTest {
             on { compile(any()) }.thenReturn(mockResponse)
         }
 
-        val markdownReceiver = MarkdownTaskReceiver(mockCompiler, tasksDir, publisher, mockConfig)
+        val markdownReceiver = MarkdownTaskReceiver(mockCompiler, tasksDir,
+                publisher, Executors.newSingleThreadExecutor(),mockConfig)
         val compileRequest = CompileRequest
                 .newBuilder()
                 .setMainFileName(source)
