@@ -56,7 +56,7 @@ fun buildResultData(request: CompileRequest, response: CompileResponse): ByteStr
             .build()
 
     val compile =  CompilerFleet.Compile.newBuilder()
-            .setRequestData(identifier)
+            .setIdentifier(identifier)
             .setTexbeResponse(response)
             .build()
 

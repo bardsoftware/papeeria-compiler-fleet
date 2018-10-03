@@ -32,6 +32,14 @@ enum Compiler {
     MD_TEX_CONVERTER = 2;
 }
 
+message CompilerFleetRequest {
+    string taskId = 3;
+    bytes zipBytes = 4;
+    string rootFileName = 5;
+    Engine engine = 6;
+    Compiler compiler = 7;
+}
+
 message CompilerFleetResult {
     oneof result {
         Compile compile = 1;

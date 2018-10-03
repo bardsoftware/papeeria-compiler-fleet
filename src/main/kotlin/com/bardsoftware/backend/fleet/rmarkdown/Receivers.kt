@@ -171,16 +171,19 @@ class MarkdownTaskReceiver(
     private fun processCancel(request: CancelRequestProto): Boolean {
         LOGGER.debug("Canceling the task with id = {}", request.taskId)
         val status = cancelTask(request)
-        val data = CompilerFleet.Cancel.newBuilder()
+        val cancelBuilder = CompilerFleet.Cancel.newBuilder()
                 .setTaskId(request.taskId)
                 .setStatus(status)
                 .setCpuTime(0) // TODO: put value when cancel task is fixed
-                .build()
-                .toByteString()
         val onPublishFailureCallback = {
             LOGGER.info("Publish cancel task ${request.taskId} response failed with code ${StatusCode.FAILURE}")
         }
 
+        val data = CompilerFleet.CompilerFleetResult
+                .newBuilder()
+                .setCancel(cancelBuilder)
+                .build()
+                .toByteString()
         resultPublisher.publish(data, onPublishFailureCallback)
         return true
     }
@@ -287,9 +290,10 @@ class MarkdownTaskReceiver(
                 .setName(tex.name)
                 .build()
 
+        val texMainName = File(request.mainFileName).parent + tex.name
         val texRequest = 
                 request.toBuilder()
-                       .setMainFileName(tex.name)
+                       .setMainFileName(texMainName)
                        .setFileRequest(request.fileRequest
                                .toBuilder().addFile(targetTex).build())
                        .setSkipFetchFiles(true)
