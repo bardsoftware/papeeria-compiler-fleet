@@ -33,11 +33,11 @@ enum Compiler {
 }
 
 message CompilerFleetRequest {
-    string taskId = 3;
-    bytes zipBytes = 4;
-    string rootFileName = 5;
-    Engine engine = 6;
-    Compiler compiler = 7;
+    string taskId = 1;
+    bytes zipBytes = 2;
+    string rootFileName = 3;
+    Engine engine = 4;
+    Compiler compiler = 5;
 }
 
 message CompilerFleetResult {
@@ -51,10 +51,11 @@ message CompilerFleetResult {
 message RequestIdentifier {
     string taskId = 1;
     bytes resultBytes = 2;
+    texbe_proto.CompileResponse.Status status = 3;
 }
 
 message Compile {
-    RequestIdentifier identifier = 1;
+    string taskId = 1;
     texbe_proto.CompileResponse texbeResponse = 2;
 }
 

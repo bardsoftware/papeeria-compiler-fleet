@@ -33,30 +33,22 @@ fun buildResultData(taskId: String, compiledBytes: ByteString, statusCode: Int):
         else -> CompileResponse.Status.FAILED
     }
 
-    val texbeResponse = CompileResponse.newBuilder()
-            .setPdfFile(compiledBytes)
+    val identifier = CompilerFleet.RequestIdentifier.newBuilder()
+            .setTaskId(taskId)
+            .setResultBytes(compiledBytes)
             .setStatus(status)
             .build()
 
-    val identifier = CompilerFleet.RequestIdentifier.newBuilder()
-            .setTaskId(taskId)
-            .build()
-
-    val compile = CompilerFleet.Compile.newBuilder()
-            .setTexbeResponse(texbeResponse)
+    return CompilerFleet.CompilerFleetResult
+            .newBuilder()
             .setIdentifier(identifier)
             .build()
-
-    return getResultData(compile)
+            .toByteString()
 }
 
 fun buildResultData(request: CompileRequest, response: CompileResponse): ByteString {
-    val identifier = CompilerFleet.RequestIdentifier.newBuilder()
-            .setTaskId(request.id)
-            .build()
-
     val compile =  CompilerFleet.Compile.newBuilder()
-            .setIdentifier(identifier)
+            .setTaskId(request.id)
             .setTexbeResponse(response)
             .build()
 

@@ -171,17 +171,18 @@ class MarkdownTaskReceiver(
     private fun processCancel(request: CancelRequestProto): Boolean {
         LOGGER.debug("Canceling the task with id = {}", request.taskId)
         val status = cancelTask(request)
-        val cancelBuilder = CompilerFleet.Cancel.newBuilder()
+        val cancelData = CompilerFleet.Cancel.newBuilder()
                 .setTaskId(request.taskId)
                 .setStatus(status)
                 .setCpuTime(0) // TODO: put value when cancel task is fixed
+                .build()
         val onPublishFailureCallback = {
             LOGGER.info("Publish cancel task ${request.taskId} response failed with code ${StatusCode.FAILURE}")
         }
 
         val data = CompilerFleet.CompilerFleetResult
                 .newBuilder()
-                .setCancel(cancelBuilder)
+                .setCancel(cancelData)
                 .build()
                 .toByteString()
         resultPublisher.publish(data, onPublishFailureCallback)
