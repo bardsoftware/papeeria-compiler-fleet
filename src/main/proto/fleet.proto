@@ -50,11 +50,7 @@ message CompilerFleetResult {
 
 message RequestIdentifier {
     string taskId = 1;
-    string userId = 2;
-    string projectId = 3;
-    string projectName = 4;
-    string mainFileId = 5;
-    string editSessionId = 6;
+    bytes resultBytes = 2;
 }
 
 message Compile {

@@ -53,11 +53,6 @@ fun buildResultData(taskId: String, compiledBytes: ByteString, statusCode: Int):
 fun buildResultData(request: CompileRequest, response: CompileResponse): ByteString {
     val identifier = CompilerFleet.RequestIdentifier.newBuilder()
             .setTaskId(request.id)
-            .setUserId(request.userId)
-            .setProjectId(request.projectId)
-            .setProjectName(request.outputBaseName)
-            .setMainFileId(request.mainFileId)
-            .setEditSessionId(request.editSessionId)
             .build()
 
     val compile =  CompilerFleet.Compile.newBuilder()

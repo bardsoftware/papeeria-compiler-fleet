@@ -107,7 +107,7 @@ class ResultReceiver(
             return false
         }
 
-        FileUtils.writeByteArrayToFile(outputFile, result.taskId.toByteArray())
+        FileUtils.writeByteArrayToFile(outputFile, result.resultBytes.toByteArray())
 
         LOGGER.info("Result received and written into {}", outputFile.name)
         System.exit(0)
