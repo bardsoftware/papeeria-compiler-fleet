@@ -38,13 +38,13 @@ fun buildResultData(taskId: String, compiledBytes: ByteString, statusCode: Int):
             .setStatus(status)
             .build()
 
-    val requestData = CompilerFleet.RequestIdentifier.newBuilder()
+    val identifier = CompilerFleet.RequestIdentifier.newBuilder()
             .setTaskId(taskId)
             .build()
 
     val compile = CompilerFleet.Compile.newBuilder()
             .setTexbeResponse(texbeResponse)
-            .setRequestData(requestData)
+            .setIdentifier(identifier)
             .build()
 
     return getResultData(compile)

@@ -32,14 +32,6 @@ enum Compiler {
     MD_TEX_CONVERTER = 2;
 }
 
-message CompilerFleetRequest {
-    string taskId = 1;
-    bytes zipBytes = 2;
-    string rootFileName = 3;
-    Engine engine = 4;
-    Compiler compiler = 5;
-}
-
 message CompilerFleetResult {
     oneof result {
         Compile compile = 1;
@@ -54,7 +46,7 @@ message RequestIdentifier {
 }
 
 message Compile {
-    RequestIdentifier requestData = 1;
+    RequestIdentifier identifier = 1;
     texbe_proto.CompileResponse texbeResponse = 2;
 }
 
