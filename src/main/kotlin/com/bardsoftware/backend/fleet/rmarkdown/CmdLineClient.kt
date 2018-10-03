@@ -15,7 +15,6 @@
  */
 package com.bardsoftware.backend.fleet.rmarkdown
 
-import com.bardsoftware.papeeria.backend.tex.CompileResponse
 import com.google.protobuf.ByteString
 import com.google.pubsub.v1.PubsubMessage
 import com.xenomachina.argparser.ArgParser
