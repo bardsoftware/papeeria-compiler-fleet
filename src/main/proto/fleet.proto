@@ -44,14 +44,7 @@ message CompilerFleetResult {
     oneof result {
         Compile compile = 1;
         Cancel cancel = 2;
-        RequestIdentifier identifier = 3;
     }
-}
-
-message RequestIdentifier {
-    string taskId = 1;
-    bytes resultBytes = 2;
-    texbe_proto.CompileResponse.Status status = 3;
 }
 
 message Compile {
